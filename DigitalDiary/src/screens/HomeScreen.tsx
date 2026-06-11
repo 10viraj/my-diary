@@ -22,11 +22,10 @@ export default function HomeScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [isUnlocked, setIsUnlocked] = useState(false);
-  
+
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [moodQuery, setMoodQuery] = useState('');
-  const [tagsQuery, setTagsQuery] = useState('');
+  const [titleQuery, setTitleQuery] = useState('');
   const [dateQuery, setDateQuery] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
@@ -68,8 +67,7 @@ export default function HomeScreen({ navigation }: any) {
     try {
       let url = `/diary?filter=${activeCategory}`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-      if (moodQuery) url += `&mood=${encodeURIComponent(moodQuery)}`;
-      if (tagsQuery) url += `&tags=${encodeURIComponent(tagsQuery)}`;
+      if (titleQuery) url += `&title=${encodeURIComponent(titleQuery)}`;
       if (dateQuery) url += `&date=${encodeURIComponent(dateQuery)}`;
 
       const response = await api.get(url);
@@ -85,7 +83,7 @@ export default function HomeScreen({ navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       fetchEntries();
-    }, [activeCategory, searchQuery, moodQuery, tagsQuery, dateQuery])
+    }, [activeCategory, searchQuery, titleQuery, dateQuery])
   );
 
   const onRefresh = () => {
@@ -100,7 +98,7 @@ export default function HomeScreen({ navigation }: any) {
     const formattedDate = new Date(item.createdAt || item.date).toLocaleDateString();
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.card}
         onPress={() => navigation.navigate('EntryDetails', { entry: item })}
       >
@@ -111,9 +109,9 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.cardExcerpt}>{excerpt}</Text>
           </View>
           {item.image && (
-            <Image 
-              source={{ uri: `${BASE_URL}${item.image}` }} 
-              style={styles.cardThumbnail} 
+            <Image
+              source={{ uri: `${BASE_URL}${item.image}` }}
+              style={styles.cardThumbnail}
             />
           )}
         </View>
@@ -123,7 +121,7 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
+
       <View style={[styles.searchContainer, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={[styles.searchInputContainer, { backgroundColor: theme.background }]}>
           <Ionicons name="search" size={20} color={theme.textLight} />
@@ -135,11 +133,11 @@ export default function HomeScreen({ navigation }: any) {
             onChangeText={setSearchQuery}
           />
         </View>
-        <TouchableOpacity 
-          style={[styles.filterButton, (moodQuery || tagsQuery || dateQuery) && { backgroundColor: theme.primaryLight }]}
+        <TouchableOpacity
+          style={[styles.filterButton, (titleQuery || dateQuery) && { backgroundColor: theme.primaryLight }]}
           onPress={() => setFilterModalVisible(true)}
         >
-          <Ionicons name="options-outline" size={24} color={(moodQuery || tagsQuery || dateQuery) ? theme.primary : theme.text} />
+          <Ionicons name="options-outline" size={24} color={(titleQuery || dateQuery) ? theme.primary : theme.text} />
         </TouchableOpacity>
       </View>
 
@@ -149,7 +147,7 @@ export default function HomeScreen({ navigation }: any) {
             <AnimatedTouchable
               key={cat.id}
               style={[
-                styles.categoryChip, 
+                styles.categoryChip,
                 { backgroundColor: theme.border },
                 activeCategory === cat.id && { backgroundColor: theme.primary }
               ]}
@@ -160,7 +158,7 @@ export default function HomeScreen({ navigation }: any) {
               }}
             >
               <Text style={[
-                styles.categoryText, 
+                styles.categoryText,
                 { color: theme.textMuted },
                 activeCategory === cat.id && { color: '#fff' }
               ]}>
@@ -175,7 +173,7 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.lockIcon}>🔒</Text>
           <Text style={[styles.lockTitle, { color: theme.text }]}>Locked Notes</Text>
           <Text style={[styles.lockSubtitle, { color: theme.textMuted }]}>Tap below to unlock your private notes</Text>
-          <AnimatedTouchable 
+          <AnimatedTouchable
             style={[styles.unlockButton, { backgroundColor: theme.primary }]}
             onPress={handleUnlockNotes}
           >
@@ -198,7 +196,7 @@ export default function HomeScreen({ navigation }: any) {
             const excerpt = item.content.length > 50 ? item.content.substring(0, 50) + '...' : item.content;
             const formattedDate = new Date(item.createdAt || item.date).toLocaleDateString();
             return (
-              <AnimatedTouchable 
+              <AnimatedTouchable
                 style={[styles.card, { backgroundColor: theme.card }]}
                 onPress={() => navigation.navigate('EntryDetails', { entry: item })}
               >
@@ -209,9 +207,9 @@ export default function HomeScreen({ navigation }: any) {
                     <Text style={[styles.cardExcerpt, { color: theme.textMuted }]}>{excerpt}</Text>
                   </View>
                   {item.image && (
-                    <Image 
-                      source={{ uri: `${BASE_URL}${item.image}` }} 
-                      style={[styles.cardThumbnail, { backgroundColor: theme.border }]} 
+                    <Image
+                      source={{ uri: `${BASE_URL}${item.image}` }}
+                      style={[styles.cardThumbnail, { backgroundColor: theme.border }]}
                     />
                   )}
                 </View>
@@ -225,7 +223,7 @@ export default function HomeScreen({ navigation }: any) {
           }
         />
       )}
-      <AnimatedTouchable 
+      <AnimatedTouchable
         style={[styles.fab, { backgroundColor: theme.primary }]}
         onPress={() => navigation.navigate('AddEntry')}
       >
@@ -242,29 +240,13 @@ export default function HomeScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.filterLabel, { color: theme.text }]}>Mood</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
-              {['', '😊', '😔', '😡', '😌', '🤔', '💼', '🤒', '🎉'].map(emoji => (
-                <TouchableOpacity 
-                  key={emoji || 'all'} 
-                  style={[
-                    styles.moodButton, 
-                    moodQuery === emoji && { backgroundColor: theme.primary, borderColor: theme.primary }
-                  ]}
-                  onPress={() => setMoodQuery(emoji)}
-                >
-                  <Text style={styles.moodEmoji}>{emoji || 'All'}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={[styles.filterLabel, { color: theme.text, marginTop: 20 }]}>Tags (comma separated)</Text>
+            <Text style={[styles.filterLabel, { color: theme.text, marginTop: 20 }]}>Entry Title</Text>
             <TextInput
               style={[styles.tagInput, { color: theme.text, borderColor: theme.border }]}
-              placeholder="e.g. work, personal"
+              placeholder="Filter by title..."
               placeholderTextColor={theme.textLight}
-              value={tagsQuery}
-              onChangeText={setTagsQuery}
+              value={titleQuery}
+              onChangeText={setTitleQuery}
             />
 
             <Text style={[styles.filterLabel, { color: theme.text, marginTop: 20 }]}>Specific Date</Text>
@@ -276,11 +258,10 @@ export default function HomeScreen({ navigation }: any) {
               onChangeText={setDateQuery}
             />
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.clearButton, { borderColor: theme.danger }]}
               onPress={() => {
-                setMoodQuery('');
-                setTagsQuery('');
+                setTitleQuery('');
                 setDateQuery('');
               }}
             >

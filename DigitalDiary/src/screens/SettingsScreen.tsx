@@ -37,13 +37,7 @@ export default function SettingsScreen({ navigation }: any) {
           />
         </View>
 
-        <TouchableOpacity 
-          style={[styles.linkRow, { borderBottomColor: theme.border }]}
-          onPress={() => navigation.navigate('Reminders')}
-        >
-          <Text style={[styles.settingText, { color: theme.text }]}>Reminders & Alerts</Text>
-          <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
-        </TouchableOpacity>
+
 
         <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
           <Text style={[styles.settingText, { color: theme.text }]}>Biometric Lock (Face/Touch ID)</Text>

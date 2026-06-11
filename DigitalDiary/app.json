@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.viraj.digitaldiary"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -38,6 +39,12 @@
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5239b0fc-b43f-4248-99d0-a14cfc730a46"
+      }
+    },
+    "owner": "viraj2003"
   }
 }

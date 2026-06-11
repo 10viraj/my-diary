@@ -7,15 +7,12 @@ import SignatureScreen from 'react-native-signature-canvas';
 import api from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeContext } from '../theme/ThemeContext';
-
 export default function AddEntryScreen({ navigation }: any) {
   const { theme } = React.useContext(ThemeContext);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isHandwritten, setIsHandwritten] = useState(false);
-  const [mood, setMood] = useState('');
-  const [tags, setTags] = useState('');
   const [loading, setLoading] = useState(false);
   const [drawingModalVisible, setDrawingModalVisible] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
@@ -59,10 +56,10 @@ export default function AddEntryScreen({ navigation }: any) {
       Alert.alert('Error', 'Please provide either text content or an image/drawing.');
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       let data: any;
       let headers = {};
 
@@ -71,23 +68,21 @@ export default function AddEntryScreen({ navigation }: any) {
         formData.append('title', title);
         formData.append('content', content);
         formData.append('isHandwritten', String(isHandwritten));
-        formData.append('mood', mood);
-        formData.append('tags', tags);
-        
+
         const filename = imageUri.split('/').pop() || 'upload.jpg';
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image/jpeg`;
-        
+
         formData.append('image', {
           uri: imageUri,
           name: filename,
           type,
         } as any);
-        
+
         data = formData;
         headers = { 'Content-Type': 'multipart/form-data' };
       } else {
-        data = { title, content, isHandwritten, mood, tags };
+        data = { title, content, isHandwritten };
       }
 
       await api.post('/diary', data, { headers });
@@ -108,7 +103,7 @@ export default function AddEntryScreen({ navigation }: any) {
   const total = calculateTotal(content);
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
@@ -141,54 +136,21 @@ export default function AddEntryScreen({ navigation }: any) {
           placeholderTextColor={theme.textLight}
         />
 
-        <View style={[styles.switchContainer, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.switchLabel, { color: theme.text }]}>Is this a handwritten note?</Text>
+        {/* <View style={[styles.switchContainer, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.switchLabel, { color: theme.text }]}>Add a photo?</Text>
           <Switch
             value={isHandwritten}
             onValueChange={setIsHandwritten}
             trackColor={{ false: theme.border, true: theme.primary }}
             thumbColor={isHandwritten ? theme.background : "#f4f3f4"}
           />
-        </View>
-        
-        <TextInput
-          style={[styles.input, { color: theme.text }]}
-          placeholder="Diary Title"
-          placeholderTextColor={theme.textLight}
-          value={title}
-          onChangeText={setTitle}
-        />
+        </View> */}
 
-        <View style={styles.moodTagsContainer}>
-          <Text style={[styles.sectionLabel, { color: theme.text }]}>Mood</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
-            {['😊', '😔', '😡', '😌', '🤔', '💼', '🤒', '🎉'].map(emoji => (
-              <TouchableOpacity 
-                key={emoji} 
-                style={[
-                  styles.moodButton, 
-                  mood === emoji && { backgroundColor: theme.primary, borderColor: theme.primary }
-                ]}
-                onPress={() => setMood(emoji)}
-              >
-                <Text style={styles.moodEmoji}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
 
-          <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 15 }]}>Tags</Text>
-          <TextInput
-            style={[styles.input, { color: theme.text, height: 40, marginBottom: 5 }]}
-            placeholder="e.g. personal, work (comma separated)"
-            placeholderTextColor={theme.textLight}
-            value={tags}
-            onChangeText={setTags}
-          />
-        </View>
 
         <TextInput
           style={[styles.contentInput, { color: theme.text }]}
-          placeholder="How was your day?"
+          placeholder="Enter your notes"
           placeholderTextColor={theme.textLight}
           value={content}
           onChangeText={setContent}
@@ -241,17 +203,17 @@ export default function AddEntryScreen({ navigation }: any) {
               <Ionicons name="trash-outline" size={20} color={theme.danger} />
               <Text style={[styles.toolbarText, { color: theme.danger }]}>Clear</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { 
-              setIsErasing(false); 
-              signatureRef.current?.draw(); 
+            <TouchableOpacity onPress={() => {
+              setIsErasing(false);
+              signatureRef.current?.draw();
               signatureRef.current?.changePenSize(1, 3);
             }} style={[styles.toolbarButton, !isErasing && { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="pencil-outline" size={20} color={!isErasing ? theme.primary : theme.textMuted} />
               <Text style={[styles.toolbarText, !isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>Pen</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { 
-              setIsErasing(true); 
-              signatureRef.current?.erase(); 
+            <TouchableOpacity onPress={() => {
+              setIsErasing(true);
+              signatureRef.current?.erase();
               signatureRef.current?.changePenSize(15, 25);
             }} style={[styles.toolbarButton, isErasing && { backgroundColor: theme.primaryLight }]}>
               <Ionicons name="backspace-outline" size={20} color={isErasing ? theme.primary : theme.textMuted} />
