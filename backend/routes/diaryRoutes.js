@@ -15,19 +15,26 @@ router.get('/', protect, async (req, res) => {
     if (filter === 'archived') {
       query.isArchived = true;
       query.isDeleted = false;
+      query.isLocked = false;
     } else if (filter === 'favorites') {
       query.isFavorite = true;
       query.isDeleted = false;
       query.isArchived = false;
+      query.isLocked = false;
     } else if (filter === 'handwritten') {
       query.isHandwritten = true;
       query.isDeleted = false;
+      query.isLocked = false;
     } else if (filter === 'deleted') {
       query.isDeleted = true;
+    } else if (filter === 'locked') {
+      query.isLocked = true;
+      query.isDeleted = false;
     } else {
-      // Default: All notes (not archived, not deleted)
+      // Default: All notes (not archived, not deleted, not locked)
       query.isArchived = false;
       query.isDeleted = false;
+      query.isLocked = false;
     }
 
     const entries = await Diary.find(query).sort({ createdAt: -1 });

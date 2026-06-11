@@ -10,6 +10,7 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
   const [deleting, setDeleting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(entry?.isFavorite || false);
   const [isArchived, setIsArchived] = useState(entry?.isArchived || false);
+  const [isLocked, setIsLocked] = useState(entry?.isLocked || false);
   const viewShotRef = useRef<any>(null);
 
   if (!entry) {
@@ -96,6 +97,16 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
       await api.put(`/diary/${entry._id}`, { isArchived: newValue });
     } catch (error) {
       setIsArchived(!newValue);
+    }
+  };
+
+  const toggleLock = async () => {
+    const newValue = !isLocked;
+    setIsLocked(newValue);
+    try {
+      await api.put(`/diary/${entry._id}`, { isLocked: newValue });
+    } catch (error) {
+      setIsLocked(!newValue);
     }
   };
 
@@ -202,6 +213,9 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionButton, styles.exportButton]} onPress={toggleArchive} disabled={deleting}>
             <Text style={[styles.actionButtonText, styles.exportButtonText]}>{isArchived ? 'Unarchive' : 'Archive'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.lockButton]} onPress={toggleLock} disabled={deleting}>
+            <Text style={[styles.actionButtonText, styles.lockButtonText]}>{isLocked ? 'Unlock' : 'Lock'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete} disabled={deleting}>
             {deleting ? <ActivityIndicator color="#e74c3c" /> : <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Trash</Text>}
@@ -311,6 +325,14 @@ const styles = StyleSheet.create({
   },
   exportButtonText: {
     color: '#208AEF',
+  },
+  lockButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#f39c12',
+  },
+  lockButtonText: {
+    color: '#f39c12',
   },
   deleteButton: {
     backgroundColor: '#fff',

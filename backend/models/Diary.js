@@ -30,6 +30,10 @@ const diarySchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isLocked: {
+    type: Boolean,
+    default: false
+  },
   isHandwritten: {
     type: Boolean,
     default: false

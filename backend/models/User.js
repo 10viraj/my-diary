@@ -12,7 +12,12 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please add a password']
+    required: function() { return !this.googleId; }
+  },
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true
   }
 }, {
   timestamps: true

@@ -13,6 +13,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { Ionicons } from '@expo/vector-icons';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -20,6 +25,42 @@ export default function LoginScreen({ navigation }: any) {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { login } = useContext(AuthContext);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', // Replace with real ID
+    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+    androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+  });
+
+  React.useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      if (authentication?.accessToken) {
+        handleGoogleLogin(authentication.accessToken);
+      }
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (accessToken: string) => {
+    try {
+      // Fetch user info from Google
+      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userInfo = await userInfoResponse.json();
+
+      // Send to backend
+      const res = await api.post('/auth/google', {
+        email: userInfo.email,
+        name: userInfo.name,
+        googleId: userInfo.id,
+      });
+
+      await login(res.data, res.data.token);
+    } catch (error: any) {
+      Alert.alert('Google Login Failed', error.message || 'Something went wrong');
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -135,6 +176,16 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
+
+          {/* Google Login Button */}
+          <TouchableOpacity
+            onPress={() => promptAsync()}
+            activeOpacity={0.85}
+            style={styles.googleButton}
+          >
+            <Ionicons name="logo-google" size={24} color="#DB4437" style={styles.googleIcon} />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
 
           {/* Footer */}
           <View style={styles.footer}>
@@ -269,6 +320,32 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+
+  /* ── Google Button ── */
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 15,
+    marginBottom: 25,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    shadowColor: '#1a73e8',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  googleIcon: {
+    marginRight: 10,
+  },
+  googleButtonText: {
+    color: '#4a5568',
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   /* ── Divider ── */

@@ -55,6 +55,53 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// @desc    Authenticate/Register a user via Google
+// @route   POST /api/auth/google
+// @access  Public
+router.post('/google', async (req, res) => {
+  try {
+    const { email, name, googleId } = req.body;
+
+    if (!email || !googleId) {
+      return res.status(400).json({ message: 'Missing Google authentication data' });
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // If user exists but doesn't have googleId set, link it
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+      
+      return res.json({
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        token: generateToken(user._id),
+      });
+    }
+
+    // If user doesn't exist, create them
+    user = await User.create({
+      name: name || 'Google User',
+      email,
+      googleId,
+    });
+
+    res.status(201).json({
+      _id: user.id,
+      name: user.name,
+      email: user.email,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // @desc    Authenticate a user
 // @route   POST /api/auth/login
 // @access  Public

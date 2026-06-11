@@ -8,6 +8,7 @@ const CATEGORIES = [
   { id: 'favorites', label: 'Favorites' },
   { id: 'handwritten', label: 'Handwritten' },
   { id: 'archived', label: 'Archived' },
+  { id: 'locked', label: 'Locked Notes' },
   { id: 'deleted', label: 'Recently Deleted' },
 ];
 
@@ -16,6 +17,7 @@ export default function HomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   const fetchEntries = async () => {
     try {
@@ -84,6 +86,7 @@ export default function HomeScreen({ navigation }: any) {
             key={cat.id}
             style={[styles.categoryChip, activeCategory === cat.id && styles.categoryChipActive]}
             onPress={() => {
+              if (cat.id !== 'locked') setIsUnlocked(false);
               setLoading(true);
               setActiveCategory(cat.id);
             }}
@@ -100,7 +103,19 @@ export default function HomeScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       {renderCategoryChips()}
-      {entries.length === 0 ? (
+      {activeCategory === 'locked' && !isUnlocked ? (
+        <View style={styles.lockContainer}>
+          <Text style={styles.lockIcon}>🔒</Text>
+          <Text style={styles.lockTitle}>Locked Notes</Text>
+          <Text style={styles.lockSubtitle}>Tap below to unlock your private notes</Text>
+          <TouchableOpacity 
+            style={styles.unlockButton}
+            onPress={() => setIsUnlocked(true)}
+          >
+            <Text style={styles.unlockButtonText}>Unlock Notes</Text>
+          </TouchableOpacity>
+        </View>
+      ) : entries.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>You don't have any diary entries yet.</Text>
           <Text style={styles.emptySubtext}>Tap the + button to create one!</Text>
@@ -242,5 +257,38 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#666',
     textAlign: 'center',
+  },
+  lockContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  lockIcon: {
+    fontSize: 60,
+    marginBottom: 15,
+  },
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  lockSubtitle: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  unlockButton: {
+    backgroundColor: '#208AEF',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  unlockButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
