@@ -2,8 +2,10 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
+import { ThemeContext } from '../theme/ThemeContext';
 
 export default function EditProfileScreen({ navigation }: any) {
+  const { theme } = useContext(ThemeContext);
   const { user, updateUser } = useContext(AuthContext);
   
   const [name, setName] = useState(user?.name || '');
@@ -30,31 +32,33 @@ export default function EditProfileScreen({ navigation }: any) {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <View style={styles.form}>
-        <Text style={styles.label}>Name</Text>
+      <View style={[styles.form, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.label, { color: theme.textMuted }]}>Name</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
           value={name}
           onChangeText={setName}
           placeholder="Enter your name"
+          placeholderTextColor={theme.textLight}
         />
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={[styles.label, { color: theme.textMuted }]}>Email</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: theme.text, borderBottomColor: theme.border }]}
           value={email}
           onChangeText={setEmail}
           placeholder="Enter your email"
+          placeholderTextColor={theme.textLight}
           keyboardType="email-address"
           autoCapitalize="none"
         />
 
         <TouchableOpacity 
-          style={styles.saveButton} 
+          style={[styles.saveButton, { backgroundColor: theme.primary }]} 
           onPress={handleSave}
           disabled={loading}
         >

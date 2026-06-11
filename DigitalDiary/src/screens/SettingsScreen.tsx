@@ -1,60 +1,64 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import { ThemeContext } from '../theme/ThemeContext';
 
 export default function SettingsScreen() {
-  const [darkMode, setDarkMode] = React.useState(false);
+  const { isDarkMode, toggleTheme, theme } = useContext(ThemeContext);
   const [notifications, setNotifications] = React.useState(true);
   const [biometric, setBiometric] = React.useState(false);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Settings</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textLight }]}>App Settings</Text>
         
-        <View style={styles.settingRow}>
-          <Text style={styles.settingText}>Dark Mode</Text>
+        <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.settingText, { color: theme.text }]}>Dark Mode</Text>
           <Switch 
-            value={darkMode} 
-            onValueChange={setDarkMode}
-            trackColor={{ false: "#d3d3d3", true: "#208AEF" }}
+            value={isDarkMode} 
+            onValueChange={toggleTheme}
+            trackColor={{ false: "#d3d3d3", true: theme.primary }}
+            thumbColor={isDarkMode ? theme.surface : "#f4f3f4"}
           />
         </View>
 
-        <View style={styles.settingRow}>
-          <Text style={styles.settingText}>Enable Notifications</Text>
+        <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.settingText, { color: theme.text }]}>Enable Notifications</Text>
           <Switch 
             value={notifications} 
             onValueChange={setNotifications}
-            trackColor={{ false: "#d3d3d3", true: "#208AEF" }}
+            trackColor={{ false: "#d3d3d3", true: theme.primary }}
+            thumbColor={notifications ? theme.surface : "#f4f3f4"}
           />
         </View>
 
-        <View style={styles.settingRow}>
-          <Text style={styles.settingText}>Biometric Lock (Face/Touch ID)</Text>
+        <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.settingText, { color: theme.text }]}>Biometric Lock (Face/Touch ID)</Text>
           <Switch 
             value={biometric} 
             onValueChange={setBiometric}
-            trackColor={{ false: "#d3d3d3", true: "#208AEF" }}
+            trackColor={{ false: "#d3d3d3", true: theme.primary }}
+            thumbColor={biometric ? theme.surface : "#f4f3f4"}
           />
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textLight }]}>About</Text>
         
-        <TouchableOpacity style={styles.linkRow}>
-          <Text style={styles.linkText}>Privacy Policy</Text>
-          <Text style={styles.chevron}>›</Text>
+        <TouchableOpacity style={[styles.linkRow, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.linkText, { color: theme.text }]}>Privacy Policy</Text>
+          <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.linkRow}>
-          <Text style={styles.linkText}>Terms of Service</Text>
-          <Text style={styles.chevron}>›</Text>
+        <TouchableOpacity style={[styles.linkRow, { borderBottomColor: theme.border }]}>
+          <Text style={[styles.linkText, { color: theme.text }]}>Terms of Service</Text>
+          <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
         </TouchableOpacity>
 
         <View style={styles.versionRow}>
-          <Text style={styles.versionText}>Version</Text>
-          <Text style={styles.versionNumber}>1.0.0</Text>
+          <Text style={[styles.versionText, { color: theme.text }]}>Version</Text>
+          <Text style={[styles.versionNumber, { color: theme.textMuted }]}>1.0.0</Text>
         </View>
       </View>
     </ScrollView>

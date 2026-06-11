@@ -14,8 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from '../theme/ThemeContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,41 +25,10 @@ export default function LoginScreen({ navigation }: any) {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const { login } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', // Replace with real ID
-    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-  });
-
-  React.useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.accessToken) {
-        handleGoogleLogin(authentication.accessToken);
-      }
-    }
-  }, [response]);
-
-  const handleGoogleLogin = async (accessToken: string) => {
-    try {
-      // Fetch user info from Google
-      const userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const userInfo = await userInfoResponse.json();
-
-      // Send to backend
-      const res = await api.post('/auth/google', {
-        email: userInfo.email,
-        name: userInfo.name,
-        googleId: userInfo.id,
-      });
-
-      await login(res.data, res.data.token);
-    } catch (error: any) {
-      Alert.alert('Google Login Failed', error.message || 'Something went wrong');
-    }
+  const handleGoogleLogin = () => {
+    Alert.alert('Notice', 'Please configure your Google Client ID to enable Google Sign-In.');
   };
 
   const handleLogin = async () => {
@@ -81,12 +50,12 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Top gradient header */}
       <LinearGradient
-        colors={['#1a73e8', '#208AEF', '#47a3ff']}
+        colors={['#1a73e8', theme.primary, '#47a3ff']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -97,7 +66,7 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.headerSubtitle}>Sign in to continue your journey</Text>
         </View>
         {/* Curved bottom */}
-        <View style={styles.curveOverlay} />
+        <View style={[styles.curveOverlay, { backgroundColor: theme.background }]} />
       </LinearGradient>
 
       {/* Form area */}
@@ -108,18 +77,19 @@ export default function LoginScreen({ navigation }: any) {
         <View style={styles.formContainer}>
           {/* Email Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Email</Text>
             <View
               style={[
                 styles.inputContainer,
-                emailFocused && styles.inputContainerFocused,
+                { backgroundColor: theme.card, borderColor: theme.border },
+                emailFocused && { borderColor: theme.primary, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4 },
               ]}
             >
               <Text style={styles.inputIcon}>✉️</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.text }]}
                 placeholder="yourname@email.com"
-                placeholderTextColor="#aab4c0"
+                placeholderTextColor={theme.textLight}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -132,18 +102,19 @@ export default function LoginScreen({ navigation }: any) {
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Password</Text>
+            <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Password</Text>
             <View
               style={[
                 styles.inputContainer,
-                passwordFocused && styles.inputContainerFocused,
+                { backgroundColor: theme.card, borderColor: theme.border },
+                passwordFocused && { borderColor: theme.primary, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4 },
               ]}
             >
               <Text style={styles.inputIcon}>🔒</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.text }]}
                 placeholder="Enter your password"
-                placeholderTextColor="#aab4c0"
+                placeholderTextColor={theme.textLight}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -155,13 +126,13 @@ export default function LoginScreen({ navigation }: any) {
 
           {/* Forgot Password */}
           <TouchableOpacity style={styles.forgotButton}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text style={[styles.forgotText, { color: theme.primary }]}>Forgot Password?</Text>
           </TouchableOpacity>
 
           {/* Login Button */}
           <TouchableOpacity onPress={handleLogin} activeOpacity={0.85}>
             <LinearGradient
-              colors={['#1a73e8', '#208AEF']}
+              colors={['#1a73e8', theme.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.loginButton}
@@ -172,26 +143,26 @@ export default function LoginScreen({ navigation }: any) {
 
           {/* Divider */}
           <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+            <Text style={[styles.dividerText, { color: theme.textLight }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
           </View>
 
           {/* Google Login Button */}
           <TouchableOpacity
-            onPress={() => promptAsync()}
+            onPress={handleGoogleLogin}
             activeOpacity={0.85}
-            style={styles.googleButton}
+            style={[styles.googleButton, { backgroundColor: theme.card, borderColor: theme.border }]}
           >
             <Ionicons name="logo-google" size={24} color="#DB4437" style={styles.googleIcon} />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            <Text style={[styles.googleButtonText, { color: theme.text }]}>Continue with Google</Text>
           </TouchableOpacity>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={[styles.footerText, { color: theme.textMuted }]}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Create Account</Text>
+              <Text style={[styles.footerLink, { color: theme.primary }]}>Create Account</Text>
             </TouchableOpacity>
           </View>
         </View>

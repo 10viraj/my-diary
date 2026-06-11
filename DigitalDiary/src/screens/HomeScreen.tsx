@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api, { BASE_URL } from '../services/api';
+import { ThemeContext } from '../theme/ThemeContext';
+import AnimatedTouchable from '../components/AnimatedTouchable';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Notes' },
@@ -18,6 +20,7 @@ export default function HomeScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const { theme } = React.useContext(ThemeContext);
 
   const fetchEntries = async () => {
     try {
@@ -70,73 +73,96 @@ export default function HomeScreen({ navigation }: any) {
     );
   };
 
-  if (loading && !refreshing) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#208AEF" />
-      </View>
-    );
-  }
-
-  const renderCategoryChips = () => (
-    <View style={styles.categoriesContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-        {CATEGORIES.map(cat => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[styles.categoryChip, activeCategory === cat.id && styles.categoryChipActive]}
-            onPress={() => {
-              if (cat.id !== 'locked') setIsUnlocked(false);
-              setLoading(true);
-              setActiveCategory(cat.id);
-            }}
-          >
-            <Text style={[styles.categoryText, activeCategory === cat.id && styles.categoryTextActive]}>
-              {cat.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      {renderCategoryChips()}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.categoriesContainer, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
+          {CATEGORIES.map(cat => (
+            <AnimatedTouchable
+              key={cat.id}
+              style={[
+                styles.categoryChip, 
+                { backgroundColor: theme.border },
+                activeCategory === cat.id && { backgroundColor: theme.primary }
+              ]}
+              onPress={() => {
+                if (cat.id !== 'locked') setIsUnlocked(false);
+                setLoading(true);
+                setActiveCategory(cat.id);
+              }}
+            >
+              <Text style={[
+                styles.categoryText, 
+                { color: theme.textMuted },
+                activeCategory === cat.id && { color: '#fff' }
+              ]}>
+                {cat.label}
+              </Text>
+            </AnimatedTouchable>
+          ))}
+        </ScrollView>
+      </View>
       {activeCategory === 'locked' && !isUnlocked ? (
         <View style={styles.lockContainer}>
           <Text style={styles.lockIcon}>🔒</Text>
-          <Text style={styles.lockTitle}>Locked Notes</Text>
-          <Text style={styles.lockSubtitle}>Tap below to unlock your private notes</Text>
-          <TouchableOpacity 
-            style={styles.unlockButton}
+          <Text style={[styles.lockTitle, { color: theme.text }]}>Locked Notes</Text>
+          <Text style={[styles.lockSubtitle, { color: theme.textMuted }]}>Tap below to unlock your private notes</Text>
+          <AnimatedTouchable 
+            style={[styles.unlockButton, { backgroundColor: theme.primary }]}
             onPress={() => setIsUnlocked(true)}
           >
             <Text style={styles.unlockButtonText}>Unlock Notes</Text>
-          </TouchableOpacity>
+          </AnimatedTouchable>
+        </View>
+      ) : loading && !refreshing ? (
+        <View style={[styles.emptyContainer, { justifyContent: 'center' }]}>
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : entries.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>You don't have any diary entries yet.</Text>
-          <Text style={styles.emptySubtext}>Tap the + button to create one!</Text>
+          <Text style={[styles.emptyText, { color: theme.text }]}>You don't have any diary entries yet.</Text>
+          <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>Tap the + button to create one!</Text>
         </View>
       ) : (
         <FlatList
           data={entries}
-          renderItem={renderItem}
+          renderItem={({ item }) => {
+            const excerpt = item.content.length > 50 ? item.content.substring(0, 50) + '...' : item.content;
+            const formattedDate = new Date(item.createdAt || item.date).toLocaleDateString();
+            return (
+              <AnimatedTouchable 
+                style={[styles.card, { backgroundColor: theme.card }]}
+                onPress={() => navigation.navigate('EntryDetails', { entry: item })}
+              >
+                <View style={styles.cardContentContainer}>
+                  <View style={styles.cardTextContainer}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
+                    <Text style={[styles.cardDate, { color: theme.textLight }]}>{formattedDate}</Text>
+                    <Text style={[styles.cardExcerpt, { color: theme.textMuted }]}>{excerpt}</Text>
+                  </View>
+                  {item.image && (
+                    <Image 
+                      source={{ uri: `${BASE_URL}${item.image}` }} 
+                      style={[styles.cardThumbnail, { backgroundColor: theme.border }]} 
+                    />
+                  )}
+                </View>
+              </AnimatedTouchable>
+            );
+          }}
           keyExtractor={item => item._id}
           contentContainerStyle={styles.listContainer}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#208AEF']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />
           }
         />
       )}
-      <TouchableOpacity 
-        style={styles.fab}
+      <AnimatedTouchable 
+        style={[styles.fab, { backgroundColor: theme.primary }]}
         onPress={() => navigation.navigate('AddEntry')}
       >
         <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+      </AnimatedTouchable>
     </View>
   );
 }

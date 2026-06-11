@@ -1,8 +1,10 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../theme/ThemeContext';
 
 export default function ProfileScreen({ navigation }: any) {
+  const { theme } = useContext(ThemeContext);
   const { user, logout } = useContext(AuthContext);
 
   const handleLogout = async () => {
@@ -25,23 +27,23 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View style={styles.avatarPlaceholder}>
           <Text style={styles.avatarText}>{getInitials(user?.name || '')}</Text>
         </View>
-        <Text style={styles.name}>{user?.name || 'User'}</Text>
-        <Text style={styles.email}>{user?.email || 'No email provided'}</Text>
+        <Text style={[styles.name, { color: theme.text }]}>{user?.name || 'User'}</Text>
+        <Text style={[styles.email, { color: theme.textMuted }]}>{user?.email || 'No email provided'}</Text>
       </View>
 
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('EditProfile')}>
-          <Text style={styles.menuItemText}>Edit Profile</Text>
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={() => navigation.navigate('EditProfile')}>
+          <Text style={[styles.menuItemText, { color: theme.text }]}>Edit Profile</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
-          <Text style={styles.menuItemText}>Settings</Text>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={() => navigation.navigate('Settings')}>
+          <Text style={[styles.menuItemText, { color: theme.text }]}>Settings</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={handleLogout}>
           <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
         </TouchableOpacity>
       </View>

@@ -4,8 +4,11 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import api, { BASE_URL } from '../services/api';
+import { ThemeContext } from '../theme/ThemeContext';
+import AnimatedTouchable from '../components/AnimatedTouchable';
 
 export default function EntryDetailsScreen({ route, navigation }: any) {
+  const { theme } = React.useContext(ThemeContext);
   const { entry } = route.params || {};
   const [deleting, setDeleting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(entry?.isFavorite || false);
@@ -15,8 +18,8 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
 
   if (!entry) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Entry not found</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.danger }]}>Entry not found</Text>
       </View>
     );
   }
@@ -27,8 +30,8 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
       "Are you sure you want to move this diary entry to the trash?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
+        {
+          text: "Delete",
           style: "destructive",
           onPress: async () => {
             try {
@@ -51,8 +54,8 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
       "This action cannot be undone. Permanently delete this entry?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete Forever", 
+        {
+          text: "Delete Forever",
           style: "destructive",
           onPress: async () => {
             try {
@@ -158,68 +161,73 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
     );
   };
 
+  const ActionCard = ({ icon, label, onPress, color, loading = false }: any) => (
+    <AnimatedTouchable style={[styles.actionCard, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress} disabled={loading}>
+      <View style={[styles.actionIconContainer, { backgroundColor: `${color}15` }]}>
+        {loading ? (
+          <ActivityIndicator color={color} size="small" />
+        ) : (
+          <Ionicons name={icon} size={22} color={color} />
+        )}
+      </View>
+      <Text style={[styles.actionLabel, { color: theme.text }]}>{label}</Text>
+    </AnimatedTouchable>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={styles.viewShotContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={[styles.viewShotContainer, { backgroundColor: theme.background }]}>
         {entry.image && (
-          <Image 
-            source={{ uri: `${BASE_URL}${entry.image}` }} 
-            style={styles.heroImage} 
+          <Image
+            source={{ uri: `${BASE_URL}${entry.image}` }}
+            style={[styles.heroImage, { backgroundColor: theme.surface }]}
           />
         )}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
           <View style={styles.titleRow}>
-            <Text style={styles.title}>{entry.title}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{entry.title}</Text>
             {!entry.isDeleted && (
               <TouchableOpacity onPress={toggleFavorite}>
-                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={28} color={isFavorite ? '#f39c12' : '#999'} />
+                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={28} color={isFavorite ? '#f39c12' : theme.textMuted} />
               </TouchableOpacity>
             )}
           </View>
-          <Text style={styles.date}>
+          <Text style={[styles.date, { color: theme.textLight }]}>
             {formattedDate} {entry.isHandwritten && ' • ✍️ Handwritten'}
           </Text>
         </View>
         <View style={styles.contentContainer}>
-          <Text style={styles.content}>
+          <Text style={[styles.content, { color: theme.text }]}>
             {entry.content}
           </Text>
         </View>
 
         {total !== 0 && (
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Auto-calculated Total:</Text>
-            <Text style={styles.totalValue}>{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
+          <View style={[styles.totalContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.totalLabel, { color: theme.textMuted }]}>Auto-calculated Total:</Text>
+            <Text style={[styles.totalValue, { color: theme.primary }]}>{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
           </View>
         )}
       </ViewShot>
-      
+
       {entry.isDeleted ? (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleRestore} disabled={deleting}>
-            <Text style={styles.actionButtonText}>Restore Note</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handlePermanentDelete} disabled={deleting}>
-            {deleting ? <ActivityIndicator color="#e74c3c" /> : <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete Forever</Text>}
-          </TouchableOpacity>
+        <View style={styles.actionsWrapper}>
+          <Text style={[styles.actionsTitle, { color: theme.text }]}>Deleted Entry</Text>
+          <View style={styles.actionsGrid}>
+            <ActionCard icon="refresh-outline" label="Restore" onPress={handleRestore} color="#27ae60" loading={deleting} />
+            <ActionCard icon="trash-bin-outline" label="Delete Forever" onPress={handlePermanentDelete} color="#e74c3c" loading={deleting} />
+          </View>
         </View>
       ) : (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('EditEntry', { entry })} disabled={deleting}>
-            <Text style={styles.actionButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.exportButton]} onPress={handleShare} disabled={deleting}>
-            <Text style={[styles.actionButtonText, styles.exportButtonText]}>Export</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.exportButton]} onPress={toggleArchive} disabled={deleting}>
-            <Text style={[styles.actionButtonText, styles.exportButtonText]}>{isArchived ? 'Unarchive' : 'Archive'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.lockButton]} onPress={toggleLock} disabled={deleting}>
-            <Text style={[styles.actionButtonText, styles.lockButtonText]}>{isLocked ? 'Unlock' : 'Lock'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete} disabled={deleting}>
-            {deleting ? <ActivityIndicator color="#e74c3c" /> : <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Trash</Text>}
-          </TouchableOpacity>
+        <View style={styles.actionsWrapper}>
+          <Text style={[styles.actionsTitle, { color: theme.text }]}>Quick Actions</Text>
+          <View style={styles.actionsGrid}>
+            <ActionCard icon="create-outline" label="Edit" onPress={() => navigation.navigate('EditEntry', { entry })} color={theme.primary} />
+            <ActionCard icon="share-outline" label="Export" onPress={handleShare} color="#8e44ad" />
+            <ActionCard icon={isArchived ? "archive" : "archive-outline"} label={isArchived ? "Unarchive" : "Archive"} onPress={toggleArchive} color="#27ae60" />
+            <ActionCard icon={isLocked ? "lock-closed" : "lock-open-outline"} label={isLocked ? "Unlock" : "Lock"} onPress={toggleLock} color="#f39c12" />
+            <ActionCard icon="trash-outline" label="Trash" onPress={handleDelete} color="#e74c3c" loading={deleting} />
+          </View>
         </View>
       )}
     </ScrollView>
@@ -297,50 +305,51 @@ const styles = StyleSheet.create({
     color: '#208AEF',
     fontWeight: 'bold',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
+  actionsWrapper: {
     marginTop: 20,
     marginBottom: 40,
-    gap: 10,
+    paddingHorizontal: 20,
   },
-  actionButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#208AEF',
+  actionsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 15,
+    justifyContent: 'flex-start',
+  },
+  actionCard: {
+    width: '30%', // roughly 3 per row
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  exportButton: {
-    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: '#208AEF',
+    borderColor: '#f0f0f0',
   },
-  exportButtonText: {
-    color: '#208AEF',
+  actionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
-  lockButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#f39c12',
-  },
-  lockButtonText: {
-    color: '#f39c12',
-  },
-  deleteButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e74c3c',
-  },
-  deleteButtonText: {
-    color: '#e74c3c',
+  actionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#444',
   },
   heroImage: {
     width: '100%',

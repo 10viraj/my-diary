@@ -49,13 +49,18 @@ router.get('/', protect, async (req, res) => {
 // @access  Private
 router.post('/', protect, upload.single('image'), async (req, res) => {
   try {
-    if (!req.body.title || !req.body.content) {
-      return res.status(400).json({ message: 'Please add a title and content' });
+    if (!req.body.title) {
+      return res.status(400).json({ message: 'Please add a title' });
+    }
+    
+    const isHandwritten = req.body.isHandwritten === 'true' || req.body.isHandwritten === true;
+    if (!req.body.content && !req.file && !isHandwritten) {
+      return res.status(400).json({ message: 'Please add content or an image' });
     }
 
     const entryData = {
       title: req.body.title,
-      content: req.body.content,
+      content: req.body.content || '',
       date: req.body.date || new Date().toISOString().split('T')[0],
       isHandwritten: req.body.isHandwritten === 'true' || req.body.isHandwritten === true,
       user: req.user.id,

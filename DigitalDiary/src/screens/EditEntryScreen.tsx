@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Text, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView, Image, Switch, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import SignatureScreen from 'react-native-signature-canvas';
 import api, { BASE_URL } from '../services/api';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from '../theme/ThemeContext';
 
 export default function EditEntryScreen({ route, navigation }: any) {
+  const { theme } = React.useContext(ThemeContext);
   const { entry } = route.params || {};
   const [title, setTitle] = useState(entry?.title || '');
   const [content, setContent] = useState(entry?.content || '');
@@ -14,6 +17,9 @@ export default function EditEntryScreen({ route, navigation }: any) {
   const [isHandwritten, setIsHandwritten] = useState(entry?.isHandwritten || false);
   const [loading, setLoading] = useState(false);
   const [drawingModalVisible, setDrawingModalVisible] = useState(false);
+  const [initialSignature, setInitialSignature] = useState<string | null>(null);
+  const [isErasing, setIsErasing] = useState(false);
+  const signatureRef = useRef<any>(null);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -28,24 +34,55 @@ export default function EditEntryScreen({ route, navigation }: any) {
     }
   };
 
+  const openDrawingModal = async () => {
+    if (imageUri && isHandwritten) {
+      try {
+        setLoading(true);
+        let base64 = '';
+        if (imageUri.startsWith('file://')) {
+          base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: FileSystem.EncodingType.Base64 });
+        } else if (imageUri.startsWith('http')) {
+          const localPath = `${FileSystem.cacheDirectory}temp_download_${Date.now()}.png`;
+          const result = await FileSystem.downloadAsync(imageUri, localPath);
+          base64 = await FileSystem.readAsStringAsync(result.uri, { encoding: FileSystem.EncodingType.Base64 });
+        }
+        if (base64) {
+          setInitialSignature(`data:image/png;base64,${base64}`);
+        }
+      } catch (e) {
+        console.error("Failed to load signature to canvas:", e);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setInitialSignature(null);
+    }
+    setDrawingModalVisible(true);
+  };
+
   const handleSignature = async (signature: string) => {
     try {
-      const base64Data = signature.replace('data:image/png;base64,', '');
-      const path = FileSystem.cacheDirectory + 'sign_' + Date.now() + '.png';
+      const base64Data = signature.split(',')[1] || signature;
+      const path = `${FileSystem.cacheDirectory}sign_${Date.now()}.png`;
       await FileSystem.writeAsStringAsync(path, base64Data, {
         encoding: FileSystem.EncodingType.Base64,
       });
       setImageUri(path);
       setIsHandwritten(true);
       setDrawingModalVisible(false);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to save drawing');
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Error', `Failed to save drawing: ${e?.message || e}`);
     }
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !content.trim()) {
-      Alert.alert('Error', 'Please provide both a title and content.');
+    if (!title.trim()) {
+      Alert.alert('Error', 'Please provide a title.');
+      return;
+    }
+    if (!content.trim() && !imageUri) {
+      Alert.alert('Error', 'Please provide either text content or an image/drawing.');
       return;
     }
     
@@ -101,14 +138,14 @@ export default function EditEntryScreen({ route, navigation }: any) {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {imageUri && (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: imageUri }} style={styles.previewImage} />
+          <View style={[styles.imageContainer, { backgroundColor: theme.surface }]}>
+            <Image source={{ uri: imageUri }} style={[styles.previewImage, { backgroundColor: theme.surface }]} />
             <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
               <Text style={styles.removeImageText}>✕</Text>
             </TouchableOpacity>
@@ -116,52 +153,52 @@ export default function EditEntryScreen({ route, navigation }: any) {
         )}
 
         <View style={styles.actionButtonsRow}>
-          <TouchableOpacity style={styles.addImageButton} onPress={pickImage}>
-            <Text style={styles.addImageText}>{imageUri && !isHandwritten ? 'Change Image' : '+ Add Photo'}</Text>
+          <TouchableOpacity style={[styles.addImageButton, { backgroundColor: theme.primaryLight, borderColor: theme.border }]} onPress={pickImage}>
+            <Text style={[styles.addImageText, { color: theme.primary }]}>{imageUri && !isHandwritten ? 'Change Image' : '+ Add Photo'}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.addImageButton} onPress={() => setDrawingModalVisible(true)}>
-            <Text style={styles.addImageText}>+ Draw Note</Text>
+          <TouchableOpacity style={[styles.addImageButton, { backgroundColor: theme.primaryLight, borderColor: theme.border }]} onPress={openDrawingModal}>
+            <Text style={[styles.addImageText, { color: theme.primary }]}>{isHandwritten && imageUri ? 'Edit Draw Note' : '+ Draw Note'}</Text>
           </TouchableOpacity>
         </View>
 
         <TextInput
-          style={styles.titleInput}
+          style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.border }]}
           placeholder="Entry Title"
           value={title}
           onChangeText={setTitle}
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.textLight}
         />
 
-        <View style={styles.switchContainer}>
-          <Text style={styles.switchLabel}>Is this a handwritten note?</Text>
+        <View style={[styles.switchContainer, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.switchLabel, { color: theme.text }]}>Is this a handwritten note?</Text>
           <Switch
             value={isHandwritten}
             onValueChange={setIsHandwritten}
-            trackColor={{ false: '#d3d3d3', true: '#82c4f8' }}
-            thumbColor={isHandwritten ? '#208AEF' : '#f4f3f4'}
+            trackColor={{ false: theme.border, true: theme.primary }}
+            thumbColor={isHandwritten ? theme.background : "#f4f3f4"}
           />
         </View>
         
         <TextInput
-          style={styles.contentInput}
+          style={[styles.contentInput, { color: theme.text }]}
           placeholder="Write your thoughts here..."
           value={content}
           onChangeText={setContent}
           multiline
           textAlignVertical="top"
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.textLight}
         />
       </ScrollView>
 
       {total !== 0 && (
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Auto-calculated Total:</Text>
-          <Text style={styles.totalValue}>{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
+        <View style={[styles.totalContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+          <Text style={[styles.totalLabel, { color: theme.textMuted }]}>Auto-calculated Total:</Text>
+          <Text style={[styles.totalValue, { color: theme.primary }]}>{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
         </View>
       )}
 
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.8}>
           <LinearGradient
             colors={['#208AEF', '#1560A6']}
@@ -179,24 +216,58 @@ export default function EditEntryScreen({ route, navigation }: any) {
       </View>
 
       <Modal visible={drawingModalVisible} animationType="slide" onRequestClose={() => setDrawingModalVisible(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Draw Note</Text>
-            <TouchableOpacity onPress={() => setDrawingModalVisible(false)}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={() => { setDrawingModalVisible(false); setIsErasing(false); }}>
               <Text style={styles.modalCloseText}>Cancel</Text>
             </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Draw Note</Text>
+            <TouchableOpacity onPress={() => { signatureRef.current?.readSignature(); }}>
+              <Text style={{ ...styles.modalCloseText, color: theme.primary }}>Save</Text>
+            </TouchableOpacity>
           </View>
-          <SignatureScreen
-            onOK={handleSignature}
-            onEmpty={() => Alert.alert('Error', 'Please draw something before saving.')}
-            descriptionText="Draw your note here"
-            clearText="Clear"
-            confirmText="Save Drawing"
-            webStyle={`.m-signature-pad {box-shadow: none; border: none; margin: 0;} 
-                       .m-signature-pad--body {border: none;}
-                       .m-signature-pad--footer {margin: 0px; padding: 10px; display: flex; justify-content: space-between;}`
-            }
-          />
+          <View style={[styles.drawingToolbar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={() => signatureRef.current?.undo()} style={styles.toolbarButton}>
+              <Ionicons name="arrow-undo-outline" size={20} color={theme.textMuted} />
+              <Text style={[styles.toolbarText, { color: theme.textMuted }]}>Undo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => signatureRef.current?.clearSignature()} style={styles.toolbarButton}>
+              <Ionicons name="trash-outline" size={20} color={theme.danger} />
+              <Text style={[styles.toolbarText, { color: theme.danger }]}>Clear</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { 
+              setIsErasing(false); 
+              signatureRef.current?.draw(); 
+              signatureRef.current?.changePenSize(1, 3);
+            }} style={[styles.toolbarButton, !isErasing && { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="pencil-outline" size={20} color={!isErasing ? theme.primary : theme.textMuted} />
+              <Text style={[styles.toolbarText, !isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>Pen</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { 
+              setIsErasing(true); 
+              signatureRef.current?.erase(); 
+              signatureRef.current?.changePenSize(15, 25);
+            }} style={[styles.toolbarButton, isErasing && { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="backspace-outline" size={20} color={isErasing ? theme.primary : theme.textMuted} />
+              <Text style={[styles.toolbarText, isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>Erase</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+            {drawingModalVisible && (
+              <SignatureScreen
+                ref={signatureRef}
+                dataURL={initialSignature || undefined}
+                onOK={handleSignature}
+                onEmpty={() => Alert.alert('Error', 'Please draw something before saving.')}
+                descriptionText=""
+                clearText="Clear"
+                confirmText="Save Drawing"
+                webStyle={`.m-signature-pad--footer { display: none; margin: 0px; }
+                           .m-signature-pad {box-shadow: none; border: none; margin: 0;} 
+                           .m-signature-pad--body {border: none;}`}
+              />
+            )}
+          </View>
         </View>
       </Modal>
     </KeyboardAvoidingView>
@@ -352,5 +423,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#e74c3c',
     fontWeight: '600',
+  },
+  drawingToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  toolbarButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+  },
+  toolbarButtonActive: {
+    backgroundColor: '#e6f2ff',
+  },
+  toolbarText: {
+    fontSize: 12,
+    marginTop: 4,
+    color: '#555',
   },
 });

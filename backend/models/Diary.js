@@ -12,7 +12,7 @@ const diarySchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: [true, 'Please add content']
+    default: ''
   },
   image: {
     type: String,

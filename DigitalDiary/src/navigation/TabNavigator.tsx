@@ -1,22 +1,28 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import { ThemeContext } from '../theme/ThemeContext';
 
 import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
+  const { theme } = useContext(ThemeContext);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerStyle: {
-          backgroundColor: '#208AEF',
+          backgroundColor: theme.primary,
         },
         headerTintColor: '#fff',
-        tabBarActiveTintColor: '#208AEF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textMuted,
+        tabBarStyle: {
+          backgroundColor: theme.background,
+          borderTopColor: theme.border,
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
 

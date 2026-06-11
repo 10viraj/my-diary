@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../theme/ThemeContext';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -15,6 +16,7 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { user, isLoading } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
 
   if (isLoading) {
     return <SplashScreen />;
@@ -35,7 +37,7 @@ export default function AppNavigator() {
             component={AddEntryScreen} 
             options={{ 
               title: 'New Diary Entry',
-              headerStyle: { backgroundColor: '#208AEF' },
+              headerStyle: { backgroundColor: theme.primary },
               headerTintColor: '#fff',
             }} 
           />
@@ -44,7 +46,7 @@ export default function AppNavigator() {
             component={EntryDetailsScreen} 
             options={{ 
               title: 'Entry Details',
-              headerStyle: { backgroundColor: '#208AEF' },
+              headerStyle: { backgroundColor: theme.primary },
               headerTintColor: '#fff',
             }} 
           />
@@ -53,7 +55,7 @@ export default function AppNavigator() {
             component={EditEntryScreen} 
             options={{ 
               title: 'Edit Diary Entry',
-              headerStyle: { backgroundColor: '#208AEF' },
+              headerStyle: { backgroundColor: theme.primary },
               headerTintColor: '#fff',
             }} 
           />
@@ -62,7 +64,7 @@ export default function AppNavigator() {
             component={EditProfileScreen} 
             options={{ 
               title: 'Edit Profile',
-              headerStyle: { backgroundColor: '#208AEF' },
+              headerStyle: { backgroundColor: theme.primary },
               headerTintColor: '#fff',
             }} 
           />
@@ -71,7 +73,7 @@ export default function AppNavigator() {
             component={SettingsScreen} 
             options={{ 
               title: 'Settings',
-              headerStyle: { backgroundColor: '#208AEF' },
+              headerStyle: { backgroundColor: theme.primary },
               headerTintColor: '#fff',
             }} 
           />
