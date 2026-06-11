@@ -9,7 +9,7 @@ const upload = require('../middleware/uploadMiddleware');
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const { filter } = req.query;
+    const { filter, search, mood, tags, date } = req.query;
     let query = { user: req.user.id };
 
     if (filter === 'archived') {
@@ -37,6 +37,23 @@ router.get('/', protect, async (req, res) => {
       query.isLocked = false;
     }
 
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (mood) {
+      query.mood = mood;
+    }
+    if (tags) {
+      const tagsArray = tags.split(',').map(t => t.trim());
+      query.tags = { $in: tagsArray };
+    }
+    if (date) {
+      query.date = date;
+    }
+
     const entries = await Diary.find(query).sort({ createdAt: -1 });
     res.status(200).json(entries);
   } catch (error) {
@@ -58,11 +75,22 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       return res.status(400).json({ message: 'Please add content or an image' });
     }
 
+    let parsedTags = [];
+    if (req.body.tags) {
+      try {
+        parsedTags = JSON.parse(req.body.tags);
+      } catch (e) {
+        parsedTags = typeof req.body.tags === 'string' ? req.body.tags.split(',') : req.body.tags;
+      }
+    }
+
     const entryData = {
       title: req.body.title,
       content: req.body.content || '',
       date: req.body.date || new Date().toISOString().split('T')[0],
       isHandwritten: req.body.isHandwritten === 'true' || req.body.isHandwritten === true,
+      mood: req.body.mood || '',
+      tags: parsedTags,
       user: req.user.id,
     };
 
@@ -97,6 +125,14 @@ router.put('/:id', protect, upload.single('image'), async (req, res) => {
     }
 
     const updateData = { ...req.body };
+    if (req.body.tags) {
+      try {
+        updateData.tags = JSON.parse(req.body.tags);
+      } catch (e) {
+        updateData.tags = typeof req.body.tags === 'string' ? req.body.tags.split(',') : req.body.tags;
+      }
+    }
+    
     if (req.file) {
       updateData.image = `/uploads/${req.file.filename}`;
     }

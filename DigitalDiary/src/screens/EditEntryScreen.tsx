@@ -15,6 +15,8 @@ export default function EditEntryScreen({ route, navigation }: any) {
   const [content, setContent] = useState(entry?.content || '');
   const [imageUri, setImageUri] = useState<string | null>(entry?.image ? `${BASE_URL}${entry.image}` : null);
   const [isHandwritten, setIsHandwritten] = useState(entry?.isHandwritten || false);
+  const [mood, setMood] = useState(entry?.mood || '');
+  const [tags, setTags] = useState(entry?.tags ? entry.tags.join(', ') : '');
   const [loading, setLoading] = useState(false);
   const [drawingModalVisible, setDrawingModalVisible] = useState(false);
   const [initialSignature, setInitialSignature] = useState<string | null>(null);
@@ -100,6 +102,8 @@ export default function EditEntryScreen({ route, navigation }: any) {
         formData.append('title', title);
         formData.append('content', content);
         formData.append('isHandwritten', String(isHandwritten));
+        formData.append('mood', mood);
+        formData.append('tags', tags);
         
         const filename = imageUri.split('/').pop() || 'upload.jpg';
         const match = /\.(\w+)$/.exec(filename);
@@ -114,9 +118,7 @@ export default function EditEntryScreen({ route, navigation }: any) {
         data = formData;
         headers = { 'Content-Type': 'multipart/form-data' };
       } else {
-        data = { title, content, isHandwritten };
-        // If image was removed, we might need a way to tell the backend to delete it.
-        // For simplicity, we just won't clear the backend image in this tutorial scope unless we add a specific field for it.
+        data = { title, content, isHandwritten, mood, tags };
       }
 
       await api.put(`/diary/${entry._id}`, data, { headers });
@@ -169,6 +171,33 @@ export default function EditEntryScreen({ route, navigation }: any) {
           onChangeText={setTitle}
           placeholderTextColor={theme.textLight}
         />
+
+        <View style={styles.moodTagsContainer}>
+          <Text style={[styles.sectionLabel, { color: theme.text }]}>Mood</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
+            {['😊', '😔', '😡', '😌', '🤔', '💼', '🤒', '🎉'].map(emoji => (
+              <TouchableOpacity 
+                key={emoji} 
+                style={[
+                  styles.moodButton, 
+                  mood === emoji && { backgroundColor: theme.primary, borderColor: theme.primary }
+                ]}
+                onPress={() => setMood(emoji)}
+              >
+                <Text style={styles.moodEmoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 15 }]}>Tags</Text>
+          <TextInput
+            style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.border, fontSize: 16 }]}
+            placeholder="e.g. personal, work (comma separated)"
+            placeholderTextColor={theme.textLight}
+            value={tags}
+            onChangeText={setTags}
+          />
+        </View>
 
         <View style={[styles.switchContainer, { backgroundColor: theme.surface }]}>
           <Text style={[styles.switchLabel, { color: theme.text }]}>Is this a handwritten note?</Text>

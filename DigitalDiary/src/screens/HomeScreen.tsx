@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, Image, ScrollView, Alert, TextInput, Modal, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import api, { BASE_URL } from '../services/api';
 import { ThemeContext } from '../theme/ThemeContext';
 import AnimatedTouchable from '../components/AnimatedTouchable';
+import { Ionicons } from '@expo/vector-icons';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Notes' },
@@ -21,6 +22,14 @@ export default function HomeScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [isUnlocked, setIsUnlocked] = useState(false);
+  
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [moodQuery, setMoodQuery] = useState('');
+  const [tagsQuery, setTagsQuery] = useState('');
+  const [dateQuery, setDateQuery] = useState('');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
   const { theme } = React.useContext(ThemeContext);
 
   const handleUnlockNotes = async () => {
@@ -57,7 +66,13 @@ export default function HomeScreen({ navigation }: any) {
 
   const fetchEntries = async () => {
     try {
-      const response = await api.get(`/diary?filter=${activeCategory}`);
+      let url = `/diary?filter=${activeCategory}`;
+      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+      if (moodQuery) url += `&mood=${encodeURIComponent(moodQuery)}`;
+      if (tagsQuery) url += `&tags=${encodeURIComponent(tagsQuery)}`;
+      if (dateQuery) url += `&date=${encodeURIComponent(dateQuery)}`;
+
+      const response = await api.get(url);
       setEntries(response.data);
     } catch (error) {
       console.error('Failed to fetch entries', error);
@@ -70,7 +85,7 @@ export default function HomeScreen({ navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       fetchEntries();
-    }, [activeCategory])
+    }, [activeCategory, searchQuery, moodQuery, tagsQuery, dateQuery])
   );
 
   const onRefresh = () => {
@@ -108,6 +123,26 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      
+      <View style={[styles.searchContainer, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <View style={[styles.searchInputContainer, { backgroundColor: theme.background }]}>
+          <Ionicons name="search" size={20} color={theme.textLight} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search entries..."
+            placeholderTextColor={theme.textLight}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity 
+          style={[styles.filterButton, (moodQuery || tagsQuery || dateQuery) && { backgroundColor: theme.primaryLight }]}
+          onPress={() => setFilterModalVisible(true)}
+        >
+          <Ionicons name="options-outline" size={24} color={(moodQuery || tagsQuery || dateQuery) ? theme.primary : theme.text} />
+        </TouchableOpacity>
+      </View>
+
       <View style={[styles.categoriesContainer, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
           {CATEGORIES.map(cat => (
@@ -196,6 +231,64 @@ export default function HomeScreen({ navigation }: any) {
       >
         <Text style={styles.fabText}>+</Text>
       </AnimatedTouchable>
+
+      <Modal visible={filterModalVisible} animationType="slide" transparent={true} onRequestClose={() => setFilterModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.filterModalContent, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Filters</Text>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <Text style={{ color: theme.primary, fontSize: 16, fontWeight: 'bold' }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.filterLabel, { color: theme.text }]}>Mood</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
+              {['', '😊', '😔', '😡', '😌', '🤔', '💼', '🤒', '🎉'].map(emoji => (
+                <TouchableOpacity 
+                  key={emoji || 'all'} 
+                  style={[
+                    styles.moodButton, 
+                    moodQuery === emoji && { backgroundColor: theme.primary, borderColor: theme.primary }
+                  ]}
+                  onPress={() => setMoodQuery(emoji)}
+                >
+                  <Text style={styles.moodEmoji}>{emoji || 'All'}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.filterLabel, { color: theme.text, marginTop: 20 }]}>Tags (comma separated)</Text>
+            <TextInput
+              style={[styles.tagInput, { color: theme.text, borderColor: theme.border }]}
+              placeholder="e.g. work, personal"
+              placeholderTextColor={theme.textLight}
+              value={tagsQuery}
+              onChangeText={setTagsQuery}
+            />
+
+            <Text style={[styles.filterLabel, { color: theme.text, marginTop: 20 }]}>Specific Date</Text>
+            <TextInput
+              style={[styles.tagInput, { color: theme.text, borderColor: theme.border }]}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.textLight}
+              value={dateQuery}
+              onChangeText={setDateQuery}
+            />
+
+            <TouchableOpacity 
+              style={[styles.clearButton, { borderColor: theme.danger }]}
+              onPress={() => {
+                setMoodQuery('');
+                setTagsQuery('');
+                setDateQuery('');
+              }}
+            >
+              <Text style={[styles.clearButtonText, { color: theme.danger }]}>Clear All Filters</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -203,7 +296,91 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  filterButton: {
+    padding: 8,
+    marginLeft: 10,
+    borderRadius: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  filterModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    borderTopWidth: 1,
+    minHeight: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  moodScroll: {
+    flexDirection: 'row',
+  },
+  moodButton: {
+    height: 45,
+    minWidth: 45,
+    paddingHorizontal: 10,
+    borderRadius: 22.5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  moodEmoji: {
+    fontSize: 20,
+  },
+  tagInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+  },
+  clearButton: {
+    marginTop: 30,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   categoriesContainer: {
     backgroundColor: '#fff',

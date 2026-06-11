@@ -14,6 +14,8 @@ export default function AddEntryScreen({ navigation }: any) {
   const [content, setContent] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isHandwritten, setIsHandwritten] = useState(false);
+  const [mood, setMood] = useState('');
+  const [tags, setTags] = useState('');
   const [loading, setLoading] = useState(false);
   const [drawingModalVisible, setDrawingModalVisible] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
@@ -69,6 +71,8 @@ export default function AddEntryScreen({ navigation }: any) {
         formData.append('title', title);
         formData.append('content', content);
         formData.append('isHandwritten', String(isHandwritten));
+        formData.append('mood', mood);
+        formData.append('tags', tags);
         
         const filename = imageUri.split('/').pop() || 'upload.jpg';
         const match = /\.(\w+)$/.exec(filename);
@@ -83,7 +87,7 @@ export default function AddEntryScreen({ navigation }: any) {
         data = formData;
         headers = { 'Content-Type': 'multipart/form-data' };
       } else {
-        data = { title, content, isHandwritten };
+        data = { title, content, isHandwritten, mood, tags };
       }
 
       await api.post('/diary', data, { headers });
@@ -148,13 +152,48 @@ export default function AddEntryScreen({ navigation }: any) {
         </View>
         
         <TextInput
+          style={[styles.input, { color: theme.text }]}
+          placeholder="Diary Title"
+          placeholderTextColor={theme.textLight}
+          value={title}
+          onChangeText={setTitle}
+        />
+
+        <View style={styles.moodTagsContainer}>
+          <Text style={[styles.sectionLabel, { color: theme.text }]}>Mood</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moodScroll}>
+            {['😊', '😔', '😡', '😌', '🤔', '💼', '🤒', '🎉'].map(emoji => (
+              <TouchableOpacity 
+                key={emoji} 
+                style={[
+                  styles.moodButton, 
+                  mood === emoji && { backgroundColor: theme.primary, borderColor: theme.primary }
+                ]}
+                onPress={() => setMood(emoji)}
+              >
+                <Text style={styles.moodEmoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={[styles.sectionLabel, { color: theme.text, marginTop: 15 }]}>Tags</Text>
+          <TextInput
+            style={[styles.input, { color: theme.text, height: 40, marginBottom: 5 }]}
+            placeholder="e.g. personal, work (comma separated)"
+            placeholderTextColor={theme.textLight}
+            value={tags}
+            onChangeText={setTags}
+          />
+        </View>
+
+        <TextInput
           style={[styles.contentInput, { color: theme.text }]}
-          placeholder="Write your thoughts here..."
+          placeholder="How was your day?"
+          placeholderTextColor={theme.textLight}
           value={content}
           onChangeText={setContent}
           multiline
           textAlignVertical="top"
-          placeholderTextColor={theme.textLight}
         />
       </ScrollView>
 
@@ -364,6 +403,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  moodTagsContainer: {
+    marginBottom: 15,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  moodScroll: {
+    flexDirection: 'row',
+  },
+  moodButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  moodEmoji: {
+    fontSize: 24,
   },
   modalContainer: {
     flex: 1,

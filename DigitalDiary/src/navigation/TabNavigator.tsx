@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
+import CalendarScreen from '../screens/CalendarScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { ThemeContext } from '../theme/ThemeContext';
 
@@ -28,6 +29,8 @@ export default function TabNavigator() {
 
           if (route.name === 'Home') {
             iconName = focused ? 'book' : 'book-outline';
+          } else if (route.name === 'Calendar') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -40,6 +43,11 @@ export default function TabNavigator() {
         name="Home" 
         component={HomeScreen} 
         options={{ title: 'My Diary' }} 
+      />
+      <Tab.Screen 
+        name="Calendar" 
+        component={CalendarScreen} 
+        options={{ title: 'Calendar' }} 
       />
       <Tab.Screen 
         name="Profile" 

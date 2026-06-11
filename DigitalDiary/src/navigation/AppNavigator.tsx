@@ -13,6 +13,7 @@ import EntryDetailsScreen from '../screens/EntryDetailsScreen';
 import EditEntryScreen from '../screens/EditEntryScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import RemindersScreen from '../screens/RemindersScreen';
 import TabNavigator from './TabNavigator';
 
 const Stack = createNativeStackNavigator();
@@ -106,6 +107,15 @@ export default function AppNavigator() {
             component={SettingsScreen} 
             options={{ 
               title: 'Settings',
+              headerStyle: { backgroundColor: theme.primary },
+              headerTintColor: '#fff',
+            }} 
+          />
+          <Stack.Screen 
+            name="Reminders" 
+            component={RemindersScreen} 
+            options={{ 
+              title: 'Reminders & Alerts',
               headerStyle: { backgroundColor: theme.primary },
               headerTintColor: '#fff',
             }} 

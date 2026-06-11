@@ -41,6 +41,14 @@ const diarySchema = new mongoose.Schema({
   date: {
     type: String,
     required: true
+  },
+  mood: {
+    type: String,
+    default: ''
+  },
+  tags: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true

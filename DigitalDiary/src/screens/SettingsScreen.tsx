@@ -3,9 +3,8 @@ import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 're
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../theme/ThemeContext';
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }: any) {
   const { isDarkMode, toggleTheme, theme } = useContext(ThemeContext);
-  const [notifications, setNotifications] = React.useState(true);
   const [biometric, setBiometric] = React.useState(false);
 
   useEffect(() => {
@@ -38,15 +37,13 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.settingText, { color: theme.text }]}>Enable Notifications</Text>
-          <Switch 
-            value={notifications} 
-            onValueChange={setNotifications}
-            trackColor={{ false: "#d3d3d3", true: theme.primary }}
-            thumbColor={notifications ? theme.surface : "#f4f3f4"}
-          />
-        </View>
+        <TouchableOpacity 
+          style={[styles.linkRow, { borderBottomColor: theme.border }]}
+          onPress={() => navigation.navigate('Reminders')}
+        >
+          <Text style={[styles.settingText, { color: theme.text }]}>Reminders & Alerts</Text>
+          <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
+        </TouchableOpacity>
 
         <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
           <Text style={[styles.settingText, { color: theme.text }]}>Biometric Lock (Face/Touch ID)</Text>
