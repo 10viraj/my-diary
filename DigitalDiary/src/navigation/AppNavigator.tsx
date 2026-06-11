@@ -1,7 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
+import { AppState, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../theme/ThemeContext';
+import AppLockOverlay from '../components/AppLockOverlay';
 import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -18,12 +21,42 @@ export default function AppNavigator() {
   const { user, isLoading } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
 
+  const [appLockEnabled, setAppLockEnabled] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const appState = useRef(AppState.currentState);
+
+  useEffect(() => {
+    const checkAppLock = async () => {
+      const lockSetting = await AsyncStorage.getItem('@app_lock');
+      if (lockSetting === 'true') {
+        setAppLockEnabled(true);
+        if (user) setIsLocked(true); // Lock immediately on start if user is logged in
+      }
+    };
+    checkAppLock();
+  }, [user]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        if (appLockEnabled && user) {
+          setIsLocked(true);
+        }
+      }
+      appState.current = nextAppState;
+    });
+    return () => {
+      subscription.remove();
+    };
+  }, [appLockEnabled, user]);
+
   if (isLoading) {
     return <SplashScreen />;
   }
 
   return (
-    <Stack.Navigator>
+    <View style={{ flex: 1 }}>
+      <Stack.Navigator>
       {user ? (
         // Main App Flow
         <>
@@ -93,6 +126,8 @@ export default function AppNavigator() {
           />
         </>
       )}
-    </Stack.Navigator>
+      </Stack.Navigator>
+      {user && isLocked && <AppLockOverlay onUnlock={() => setIsLocked(false)} />}
+    </View>
   );
 }

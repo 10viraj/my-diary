@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, Image, ScrollView, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import api, { BASE_URL } from '../services/api';
 import { ThemeContext } from '../theme/ThemeContext';
 import AnimatedTouchable from '../components/AnimatedTouchable';
@@ -21,6 +22,38 @@ export default function HomeScreen({ navigation }: any) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const { theme } = React.useContext(ThemeContext);
+
+  const handleUnlockNotes = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert(
+          'Security Warning',
+          'Your device does not have a passcode or biometric authentication set up. Anyone can view your locked notes.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Unlock Anyway', onPress: () => setIsUnlocked(true) }
+          ]
+        );
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Unlock your private notes',
+        fallbackLabel: 'Use Passcode',
+        cancelLabel: 'Cancel',
+      });
+
+      if (result.success) {
+        setIsUnlocked(true);
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      Alert.alert('Error', 'An error occurred during authentication.');
+    }
+  };
 
   const fetchEntries = async () => {
     try {
@@ -109,7 +142,7 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={[styles.lockSubtitle, { color: theme.textMuted }]}>Tap below to unlock your private notes</Text>
           <AnimatedTouchable 
             style={[styles.unlockButton, { backgroundColor: theme.primary }]}
-            onPress={() => setIsUnlocked(true)}
+            onPress={handleUnlockNotes}
           >
             <Text style={styles.unlockButtonText}>Unlock Notes</Text>
           </AnimatedTouchable>

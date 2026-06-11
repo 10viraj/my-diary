@@ -1,11 +1,27 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../theme/ThemeContext';
 
 export default function SettingsScreen() {
   const { isDarkMode, toggleTheme, theme } = useContext(ThemeContext);
   const [notifications, setNotifications] = React.useState(true);
   const [biometric, setBiometric] = React.useState(false);
+
+  useEffect(() => {
+    const loadBiometric = async () => {
+      const value = await AsyncStorage.getItem('@app_lock');
+      if (value === 'true') {
+        setBiometric(true);
+      }
+    };
+    loadBiometric();
+  }, []);
+
+  const handleBiometricToggle = async (value: boolean) => {
+    setBiometric(value);
+    await AsyncStorage.setItem('@app_lock', value ? 'true' : 'false');
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -36,7 +52,7 @@ export default function SettingsScreen() {
           <Text style={[styles.settingText, { color: theme.text }]}>Biometric Lock (Face/Touch ID)</Text>
           <Switch 
             value={biometric} 
-            onValueChange={setBiometric}
+            onValueChange={handleBiometricToggle}
             trackColor={{ false: "#d3d3d3", true: theme.primary }}
             thumbColor={biometric ? theme.surface : "#f4f3f4"}
           />
