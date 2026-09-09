@@ -2,8 +2,15 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Use local WiFi IP so a physical device can connect to the backend
-export const BASE_URL = 'http://192.168.1.4:5000';
+const getBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    const hostname = typeof window !== 'undefined' && window.location ? window.location.hostname : 'localhost';
+    return `http://${hostname}:5000`;
+  }
+  return 'http://192.168.1.4:5000';
+};
+
+export const BASE_URL = getBaseUrl();
 export const API_URL = `${BASE_URL}/api`;
 
 const api = axios.create({

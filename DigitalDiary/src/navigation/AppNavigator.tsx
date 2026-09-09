@@ -30,7 +30,7 @@ export default function AppNavigator() {
       const lockSetting = await AsyncStorage.getItem('@app_lock');
       if (lockSetting === 'true') {
         setAppLockEnabled(true);
-        if (user) setIsLocked(true); // Lock immediately on start if user is logged in
+        if (user) setIsLocked(true);
       }
     };
     checkAppLock();
@@ -56,76 +56,48 @@ export default function AppNavigator() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Navigator>
-      {user ? (
-        // Main App Flow
-        <>
-          <Stack.Screen 
-            name="MainTabs" 
-            component={TabNavigator} 
-            options={{ headerShown: false }} 
-          />
-          <Stack.Screen 
-            name="AddEntry" 
-            component={AddEntryScreen} 
-            options={{ 
-              title: 'New Diary Entry',
-              headerStyle: { backgroundColor: theme.primary },
-              headerTintColor: '#fff',
-            }} 
-          />
-          <Stack.Screen 
-            name="EntryDetails" 
-            component={EntryDetailsScreen} 
-            options={{ 
-              title: 'Entry Details',
-              headerStyle: { backgroundColor: theme.primary },
-              headerTintColor: '#fff',
-            }} 
-          />
-          <Stack.Screen 
-            name="EditEntry" 
-            component={EditEntryScreen} 
-            options={{ 
-              title: 'Edit Diary Entry',
-              headerStyle: { backgroundColor: theme.primary },
-              headerTintColor: '#fff',
-            }} 
-          />
-          <Stack.Screen 
-            name="EditProfile" 
-            component={EditProfileScreen} 
-            options={{ 
-              title: 'Edit Profile',
-              headerStyle: { backgroundColor: theme.primary },
-              headerTintColor: '#fff',
-            }} 
-          />
-          <Stack.Screen 
-            name="Settings" 
-            component={SettingsScreen} 
-            options={{ 
-              title: 'Settings',
-              headerStyle: { backgroundColor: theme.primary },
-              headerTintColor: '#fff',
-            }} 
-          />
-        </>
-      ) : (
-        // Auth Flow
-        <>
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen} 
-            options={{ headerShown: false }} 
-          />
-          <Stack.Screen 
-            name="Register" 
-            component={RegisterScreen} 
-            options={{ headerShown: false }} 
-          />
-        </>
-      )}
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
+          // Main App Flow
+          <>
+            <Stack.Screen 
+              name="MainTabs" 
+              component={TabNavigator} 
+            />
+            <Stack.Screen 
+              name="AddEntry" 
+              component={AddEntryScreen} 
+            />
+            <Stack.Screen 
+              name="EntryDetails" 
+              component={EntryDetailsScreen} 
+            />
+            <Stack.Screen 
+              name="EditEntry" 
+              component={EditEntryScreen} 
+            />
+            <Stack.Screen 
+              name="EditProfile" 
+              component={EditProfileScreen} 
+            />
+            <Stack.Screen 
+              name="Settings" 
+              component={SettingsScreen} 
+            />
+          </>
+        ) : (
+          // Auth Flow
+          <>
+            <Stack.Screen 
+              name="Login" 
+              component={LoginScreen} 
+            />
+            <Stack.Screen 
+              name="Register" 
+              component={RegisterScreen} 
+            />
+          </>
+        )}
       </Stack.Navigator>
       {user && isLocked && <AppLockOverlay onUnlock={() => setIsLocked(false)} />}
     </View>

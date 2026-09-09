@@ -1,22 +1,24 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, useWindowDimensions } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../theme/ThemeContext';
+import DesktopHeader from '../components/DesktopHeader';
 
 export default function ProfileScreen({ navigation }: any) {
   const { theme } = useContext(ThemeContext);
   const { user, logout } = useContext(AuthContext);
+  const { width } = useWindowDimensions();
+
+  const isDesktop = Platform.OS === 'web' && width >= 768;
 
   const handleLogout = async () => {
     try {
       await logout();
-      // AppNavigator will automatically transition to the Auth Stack because user becomes null
     } catch (error) {
       Alert.alert('Error', 'Failed to log out.');
     }
   };
 
-  // Generate initials from the user's name (e.g., "John Doe" -> "JD")
   const getInitials = (name: string) => {
     if (!name) return 'U';
     const names = name.split(' ');
@@ -28,24 +30,34 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarText}>{getInitials(user?.name || '')}</Text>
-        </View>
-        <Text style={[styles.name, { color: theme.text }]}>{user?.name || 'User'}</Text>
-        <Text style={[styles.email, { color: theme.textMuted }]}>{user?.email || 'No email provided'}</Text>
-      </View>
+      {isDesktop && (
+        <DesktopHeader
+          activeTab="Profile"
+          onSelectTab={(tab) => navigation.navigate(tab)}
+          onNewEntry={() => navigation.navigate('AddEntry')}
+        />
+      )}
 
-      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={() => navigation.navigate('EditProfile')}>
-          <Text style={[styles.menuItemText, { color: theme.text }]}>Edit Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={() => navigation.navigate('Settings')}>
-          <Text style={[styles.menuItemText, { color: theme.text }]}>Settings</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={handleLogout}>
-          <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
-        </TouchableOpacity>
+      <View style={[styles.webContainer, isDesktop && styles.desktopContainer]}>
+        <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }, isDesktop && styles.desktopCard]}>
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{getInitials(user?.name || '')}</Text>
+          </View>
+          <Text style={[styles.name, { color: theme.text }]}>{user?.name || 'User'}</Text>
+          <Text style={[styles.email, { color: theme.textMuted }]}>{user?.email || 'No email provided'}</Text>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }, isDesktop && styles.desktopCard]}>
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={() => navigation.navigate('EditProfile')}>
+            <Text style={[styles.menuItemText, { color: theme.text }]}>Edit Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={() => navigation.navigate('Settings')}>
+            <Text style={[styles.menuItemText, { color: theme.text }]}>Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]} onPress={handleLogout}>
+            <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -54,11 +66,31 @@ export default function ProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  webContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  desktopContainer: {
+    paddingVertical: 28,
+    gap: 20,
+  },
+  desktopCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 3,
   },
   header: {
     backgroundColor: '#fff',
-    padding: 30,
+    padding: 36,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
@@ -67,10 +99,10 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#1a73e8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
   },
   avatarText: {
     fontSize: 40,
@@ -79,13 +111,11 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   email: {
     fontSize: 16,
-    color: '#666',
   },
   section: {
     marginTop: 20,
@@ -100,8 +130,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   menuItemText: {
-    fontSize: 18,
-    color: '#333',
+    fontSize: 17,
+    fontWeight: '600',
   },
   logoutText: {
     color: '#e74c3c',

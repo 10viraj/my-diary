@@ -1,11 +1,14 @@
 import React, { useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../theme/ThemeContext';
 
 export default function SettingsScreen({ navigation }: any) {
   const { isDarkMode, toggleTheme, theme } = useContext(ThemeContext);
   const [biometric, setBiometric] = React.useState(false);
+  const { width } = useWindowDimensions();
+
+  const isDesktop = Platform.OS === 'web' && width >= 768;
 
   useEffect(() => {
     const loadBiometric = async () => {
@@ -24,48 +27,48 @@ export default function SettingsScreen({ navigation }: any) {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.sectionTitle, { color: theme.textLight }]}>App Settings</Text>
-        
-        <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.settingText, { color: theme.text }]}>Dark Mode</Text>
-          <Switch 
-            value={isDarkMode} 
-            onValueChange={toggleTheme}
-            trackColor={{ false: "#d3d3d3", true: theme.primary }}
-            thumbColor={isDarkMode ? theme.surface : "#f4f3f4"}
-          />
+      <View style={[styles.webContainer, isDesktop && styles.desktopContainer]}>
+        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }, isDesktop && styles.desktopCard]}>
+          <Text style={[styles.sectionTitle, { color: theme.textLight }]}>App Settings</Text>
+          
+          <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.settingText, { color: theme.text }]}>Dark Mode</Text>
+            <Switch 
+              value={isDarkMode} 
+              onValueChange={toggleTheme}
+              trackColor={{ false: "#d3d3d3", true: theme.primary }}
+              thumbColor={isDarkMode ? theme.surface : "#f4f3f4"}
+            />
+          </View>
+
+          <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.settingText, { color: theme.text }]}>Biometric Lock (Face/Touch ID)</Text>
+            <Switch 
+              value={biometric} 
+              onValueChange={handleBiometricToggle}
+              trackColor={{ false: "#d3d3d3", true: theme.primary }}
+              thumbColor={biometric ? theme.surface : "#f4f3f4"}
+            />
+          </View>
         </View>
 
+        <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }, isDesktop && styles.desktopCard]}>
+          <Text style={[styles.sectionTitle, { color: theme.textLight }]}>About</Text>
+          
+          <TouchableOpacity style={[styles.linkRow, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.linkText, { color: theme.text }]}>Privacy Policy</Text>
+            <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={[styles.linkRow, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.linkText, { color: theme.text }]}>Terms of Service</Text>
+            <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
+          </TouchableOpacity>
 
-
-        <View style={[styles.settingRow, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.settingText, { color: theme.text }]}>Biometric Lock (Face/Touch ID)</Text>
-          <Switch 
-            value={biometric} 
-            onValueChange={handleBiometricToggle}
-            trackColor={{ false: "#d3d3d3", true: theme.primary }}
-            thumbColor={biometric ? theme.surface : "#f4f3f4"}
-          />
-        </View>
-      </View>
-
-      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.sectionTitle, { color: theme.textLight }]}>About</Text>
-        
-        <TouchableOpacity style={[styles.linkRow, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.linkText, { color: theme.text }]}>Privacy Policy</Text>
-          <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={[styles.linkRow, { borderBottomColor: theme.border }]}>
-          <Text style={[styles.linkText, { color: theme.text }]}>Terms of Service</Text>
-          <Text style={[styles.chevron, { color: theme.textLight }]}>›</Text>
-        </TouchableOpacity>
-
-        <View style={styles.versionRow}>
-          <Text style={[styles.versionText, { color: theme.text }]}>Version</Text>
-          <Text style={[styles.versionNumber, { color: theme.textMuted }]}>1.0.0</Text>
+          <View style={styles.versionRow}>
+            <Text style={[styles.versionText, { color: theme.text }]}>Version</Text>
+            <Text style={[styles.versionNumber, { color: theme.textMuted }]}>1.0.0</Text>
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -75,7 +78,23 @@ export default function SettingsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  webContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  desktopContainer: {
+    paddingVertical: 20,
+    gap: 20,
+  },
+  desktopCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    overflow: 'hidden',
+    marginTop: 0,
   },
   section: {
     marginTop: 20,

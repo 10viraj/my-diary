@@ -1,5 +1,17 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Image, Share } from 'react-native';
+import React, { useState, useRef, useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Image,
+  Share,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,13 +20,17 @@ import { ThemeContext } from '../theme/ThemeContext';
 import AnimatedTouchable from '../components/AnimatedTouchable';
 
 export default function EntryDetailsScreen({ route, navigation }: any) {
-  const { theme } = React.useContext(ThemeContext);
+  const { theme, isDarkMode } = useContext(ThemeContext);
+  const { width } = useWindowDimensions();
   const { entry } = route.params || {};
+
   const [deleting, setDeleting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(entry?.isFavorite || false);
   const [isArchived, setIsArchived] = useState(entry?.isArchived || false);
   const [isLocked, setIsLocked] = useState(entry?.isLocked || false);
   const viewShotRef = useRef<any>(null);
+
+  const isDesktop = Platform.OS === 'web' && width >= 768;
 
   if (!entry) {
     return (
@@ -113,7 +129,12 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
     }
   };
 
-  const formattedDate = new Date(entry.createdAt || entry.date).toLocaleDateString();
+  const formattedDate = new Date(entry.createdAt || entry.date).toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   const calculateTotal = (text: string) => {
     if (!text) return 0;
@@ -162,12 +183,16 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
   };
 
   const ActionCard = ({ icon, label, onPress, color, loading = false }: any) => (
-    <AnimatedTouchable style={[styles.actionCard, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={onPress} disabled={loading}>
+    <AnimatedTouchable
+      style={[styles.actionCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+      onPress={onPress}
+      disabled={loading}
+    >
       <View style={[styles.actionIconContainer, { backgroundColor: `${color}15` }]}>
         {loading ? (
           <ActivityIndicator color={color} size="small" />
         ) : (
-          <Ionicons name={icon} size={22} color={color} />
+          <Ionicons name={icon} size={20} color={color} />
         )}
       </View>
       <Text style={[styles.actionLabel, { color: theme.text }]}>{label}</Text>
@@ -175,61 +200,93 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
   );
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={[styles.viewShotContainer, { backgroundColor: theme.background }]}>
-        {entry.image && (
-          <Image
-            source={{ uri: `${BASE_URL}${entry.image}` }}
-            style={[styles.heroImage, { backgroundColor: theme.surface }]}
-          />
-        )}
-        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, { color: theme.text }]}>{entry.title}</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDesktop ? (isDarkMode ? '#0f172a' : '#f0f4f8') : theme.background }]}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={[styles.webCard, isDesktop && styles.desktopCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        {/* Navigation Bar */}
+        <View style={[styles.detailsNav, { borderBottomColor: theme.border }]}>
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={20} color={theme.text} />
+          </TouchableOpacity>
+
+          <View style={styles.navRightActions}>
             {!entry.isDeleted && (
-              <TouchableOpacity onPress={toggleFavorite}>
-                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={28} color={isFavorite ? '#f39c12' : theme.textMuted} />
+              <TouchableOpacity
+                style={[styles.favoriteBtn, { backgroundColor: theme.background, borderColor: theme.border }]}
+                onPress={toggleFavorite}
+              >
+                <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={20} color={isFavorite ? '#f59e0b' : theme.textMuted} />
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={[styles.editBtn, { backgroundColor: theme.primaryLight }]}
+              onPress={() => navigation.navigate('EditEntry', { entry })}
+            >
+              <Ionicons name="create-outline" size={18} color={theme.primary} />
+              <Text style={[styles.editBtnText, { color: theme.primary }]}>Edit Entry</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={[styles.date, { color: theme.textLight }]}>
-            {formattedDate} {entry.isHandwritten && ' • ✍️ Handwritten'}
-          </Text>
-        </View>
-        <View style={styles.contentContainer}>
-          <Text style={[styles.content, { color: theme.text }]}>
-            {entry.content}
-          </Text>
         </View>
 
-        {total !== 0 && (
-          <View style={[styles.totalContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.totalLabel, { color: theme.textMuted }]}>Auto-calculated Total:</Text>
-            <Text style={[styles.totalValue, { color: theme.primary }]}>{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
+        {/* ViewShot Container */}
+        <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={{ backgroundColor: theme.card }}>
+          {entry.image && (
+            <Image
+              source={{ uri: `${BASE_URL}${entry.image}` }}
+              style={[styles.heroImage, { backgroundColor: theme.background }]}
+            />
+          )}
+
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.text }]}>{entry.title}</Text>
+            <Text style={[styles.date, { color: theme.primary }]}>
+              📅 {formattedDate} {entry.isHandwritten && ' • 🎨 Sketch Note'}
+            </Text>
+          </View>
+
+          <View style={styles.contentContainer}>
+            <Text style={[styles.content, { color: theme.text }]}>
+              {entry.content}
+            </Text>
+          </View>
+
+          {total !== 0 && (
+            <View style={[styles.totalContainer, { backgroundColor: theme.background, borderColor: theme.border }]}>
+              <Text style={[styles.totalLabel, { color: theme.textMuted }]}>Auto-calculated Total:</Text>
+              <Text style={[styles.totalValue, { color: theme.primary }]}>
+                {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </Text>
+            </View>
+          )}
+        </ViewShot>
+
+        {/* Quick Actions Row */}
+        {entry.isDeleted ? (
+          <View style={[styles.actionsWrapper, { borderTopColor: theme.border }]}>
+            <Text style={[styles.actionsTitle, { color: theme.text }]}>Deleted Entry Actions</Text>
+            <View style={styles.actionsGrid}>
+              <ActionCard icon="refresh-outline" label="Restore" onPress={handleRestore} color="#10b981" loading={deleting} />
+              <ActionCard icon="trash-bin-outline" label="Delete Forever" onPress={handlePermanentDelete} color="#ef4444" loading={deleting} />
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.actionsWrapper, { borderTopColor: theme.border }]}>
+            <Text style={[styles.actionsTitle, { color: theme.text }]}>Options & Tools</Text>
+            <View style={styles.actionsGrid}>
+              <ActionCard icon="create-outline" label="Edit" onPress={() => navigation.navigate('EditEntry', { entry })} color={theme.primary} />
+              <ActionCard icon="share-outline" label="Export" onPress={handleShare} color="#8b5cf6" />
+              <ActionCard icon={isArchived ? "archive" : "archive-outline"} label={isArchived ? "Unarchive" : "Archive"} onPress={toggleArchive} color="#10b981" />
+              <ActionCard icon={isLocked ? "lock-closed" : "lock-open-outline"} label={isLocked ? "Unlock" : "Lock"} onPress={toggleLock} color="#f59e0b" />
+              <ActionCard icon="trash-outline" label="Trash" onPress={handleDelete} color="#ef4444" loading={deleting} />
+            </View>
           </View>
         )}
-      </ViewShot>
-
-      {entry.isDeleted ? (
-        <View style={styles.actionsWrapper}>
-          <Text style={[styles.actionsTitle, { color: theme.text }]}>Deleted Entry</Text>
-          <View style={styles.actionsGrid}>
-            <ActionCard icon="refresh-outline" label="Restore" onPress={handleRestore} color="#27ae60" loading={deleting} />
-            <ActionCard icon="trash-bin-outline" label="Delete Forever" onPress={handlePermanentDelete} color="#e74c3c" loading={deleting} />
-          </View>
-        </View>
-      ) : (
-        <View style={styles.actionsWrapper}>
-          <Text style={[styles.actionsTitle, { color: theme.text }]}>Quick Actions</Text>
-          <View style={styles.actionsGrid}>
-            <ActionCard icon="create-outline" label="Edit" onPress={() => navigation.navigate('EditEntry', { entry })} color={theme.primary} />
-            <ActionCard icon="share-outline" label="Export" onPress={handleShare} color="#8e44ad" />
-            <ActionCard icon={isArchived ? "archive" : "archive-outline"} label={isArchived ? "Unarchive" : "Archive"} onPress={toggleArchive} color="#27ae60" />
-            <ActionCard icon={isLocked ? "lock-closed" : "lock-open-outline"} label={isLocked ? "Unlock" : "Lock"} onPress={toggleLock} color="#f39c12" />
-            <ActionCard icon="trash-outline" label="Trash" onPress={handleDelete} color="#e74c3c" loading={deleting} />
-          </View>
-        </View>
-      )}
+      </View>
     </ScrollView>
   );
 }
@@ -237,124 +294,165 @@ export default function EntryDetailsScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingVertical: Platform.OS === 'web' ? 24 : 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webCard: {
+    width: '100%',
+    flex: 1,
+  },
+  desktopCard: {
+    maxWidth: 920,
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 6,
+    marginVertical: 12,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   errorText: {
     fontSize: 18,
-    color: '#e74c3c',
   },
-  viewShotContainer: {
-    backgroundColor: '#fff',
-    paddingBottom: 20, // Give some breathing room at bottom before buttons
+
+  /* ── Nav Header ── */
+  detailsNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  favoriteBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
+  },
+  editBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  /* ── Content ── */
+  heroImage: {
+    width: '100%',
+    height: 380,
+    resizeMode: 'contain',
   },
   header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#f9f9f9',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   title: {
-    flex: 1,
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    fontSize: 30,
+    fontWeight: '800',
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
   date: {
-    fontSize: 16,
-    color: '#888',
+    fontSize: 14,
+    fontWeight: '700',
   },
   contentContainer: {
-    padding: 20,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
   },
   content: {
     fontSize: 18,
-    color: '#444',
-    lineHeight: 28,
+    lineHeight: 30,
   },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 28,
+    marginVertical: 16,
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    marginHorizontal: 20,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#eee',
-    marginTop: 10,
   },
   totalLabel: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
     fontWeight: '600',
   },
   totalValue: {
     fontSize: 18,
-    color: '#208AEF',
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
+
+  /* ── Quick Actions ── */
   actionsWrapper: {
-    marginTop: 20,
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+    borderTopWidth: 1,
+    marginTop: 16,
   },
   actionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 16,
   },
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 15,
-    justifyContent: 'flex-start',
+    gap: 12,
   },
   actionCard: {
-    width: '30%', // roughly 3 per row
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 10,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 3,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
   },
   actionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
   },
   actionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#444',
-  },
-  heroImage: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'contain',
-    backgroundColor: '#f8f9fa',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

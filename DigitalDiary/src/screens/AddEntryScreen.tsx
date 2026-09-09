@@ -1,5 +1,20 @@
-import React, { useState, useRef } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Text, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView, Image, Switch, Modal } from 'react-native';
+import React, { useState, useRef, useContext } from 'react';
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Image,
+  Switch,
+  Modal,
+  useWindowDimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -7,8 +22,11 @@ import SignatureScreen from 'react-native-signature-canvas';
 import api from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeContext } from '../theme/ThemeContext';
+
 export default function AddEntryScreen({ navigation }: any) {
-  const { theme } = React.useContext(ThemeContext);
+  const { theme, isDarkMode } = useContext(ThemeContext);
+  const { width } = useWindowDimensions();
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -17,6 +35,8 @@ export default function AddEntryScreen({ navigation }: any) {
   const [drawingModalVisible, setDrawingModalVisible] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
   const signatureRef = useRef<any>(null);
+
+  const isDesktop = Platform.OS === 'web' && width >= 768;
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -49,7 +69,7 @@ export default function AddEntryScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please provide a title.');
+      Alert.alert('Error', 'Please provide an entry title.');
       return;
     }
     if (!content.trim() && !imageUri) {
@@ -59,7 +79,6 @@ export default function AddEntryScreen({ navigation }: any) {
 
     try {
       setLoading(true);
-
       let data: any;
       let headers = {};
 
@@ -87,9 +106,9 @@ export default function AddEntryScreen({ navigation }: any) {
 
       await api.post('/diary', data, { headers });
       navigation.goBack();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'Failed to save the entry.');
+      Alert.alert('Error', error.response?.data?.message || 'Failed to save the entry.');
       setLoading(false);
     }
   };
@@ -100,126 +119,221 @@ export default function AddEntryScreen({ navigation }: any) {
     return matches.reduce((acc, val) => acc + parseFloat(val), 0);
   };
 
+  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const charCount = content.length;
   const total = calculateTotal(content);
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.background }]}
+      style={[styles.container, { backgroundColor: isDesktop ? (isDarkMode ? '#0f172a' : '#f0f4f8') : theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {imageUri && (
-          <View style={[styles.imageContainer, { backgroundColor: theme.surface }]}>
-            <Image source={{ uri: imageUri }} style={[styles.previewImage, { backgroundColor: theme.surface }]} />
-            <TouchableOpacity style={styles.removeImageButton} onPress={() => setImageUri(null)}>
-              <Text style={styles.removeImageText}>✕</Text>
-            </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={[styles.webCard, isDesktop && styles.desktopCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          {/* Editor Header Navigation */}
+          <View style={[styles.editorHeader, { borderBottomColor: theme.border }]}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={[styles.backButton, { backgroundColor: theme.background, borderColor: theme.border }]}
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="arrow-back" size={20} color={theme.text} />
+              </TouchableOpacity>
+              <View>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>New Diary Entry</Text>
+                <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>
+                  Write your thoughts, upload media, or sketch drawings.
+                </Text>
+              </View>
+            </View>
+
+            {isDesktop && (
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={[styles.cancelBtn, { borderColor: theme.border }]}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Text style={[styles.cancelBtnText, { color: theme.textMuted }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.85}>
+                  <LinearGradient
+                    colors={['#1a73e8', '#2563eb']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.desktopSaveBtn}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark" size={18} color="#fff" />
+                        <Text style={styles.saveBtnText}>Save Entry</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
 
-        <View style={styles.actionButtonsRow}>
-          <TouchableOpacity style={[styles.addImageButton, { backgroundColor: theme.primaryLight, borderColor: theme.border }]} onPress={pickImage}>
-            <Text style={[styles.addImageText, { color: theme.primary }]}>{imageUri && !isHandwritten ? 'Change Image' : '+ Add Photo'}</Text>
-          </TouchableOpacity>
+          {/* Form Content Area */}
+          <View style={styles.formBody}>
+            {/* Toolbar Buttons */}
+            <View style={styles.toolbarRow}>
+              <TouchableOpacity
+                style={[styles.toolChip, { backgroundColor: theme.background, borderColor: theme.border }]}
+                onPress={pickImage}
+              >
+                <Ionicons name="image-outline" size={18} color={theme.primary} />
+                <Text style={[styles.toolChipText, { color: theme.primary }]}>
+                  {imageUri && !isHandwritten ? 'Change Photo' : '+ Add Photo'}
+                </Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.addImageButton, { backgroundColor: theme.primaryLight, borderColor: theme.border }]} onPress={() => setDrawingModalVisible(true)}>
-            <Text style={[styles.addImageText, { color: theme.primary }]}>+ Draw Note</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toolChip, { backgroundColor: theme.background, borderColor: theme.border }]}
+                onPress={() => setDrawingModalVisible(true)}
+              >
+                <Ionicons name="pencil-outline" size={18} color={theme.primary} />
+                <Text style={[styles.toolChipText, { color: theme.primary }]}>+ Draw Note</Text>
+              </TouchableOpacity>
+
+              <View style={[styles.switchChip, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Text style={[styles.switchChipText, { color: theme.textMuted }]}>Sketch Note?</Text>
+                <Switch
+                  value={isHandwritten}
+                  onValueChange={setIsHandwritten}
+                  trackColor={{ false: theme.border, true: theme.primary }}
+                  thumbColor={isHandwritten ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+            </View>
+
+            {/* Image / Drawing Preview */}
+            {imageUri && (
+              <View style={[styles.imagePreviewWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Image source={{ uri: imageUri }} style={styles.previewImage} />
+                <TouchableOpacity style={styles.removeImgBtn} onPress={() => setImageUri(null)}>
+                  <Ionicons name="close" size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Title Input */}
+            <TextInput
+              style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.border }]}
+              placeholder="Entry Title..."
+              placeholderTextColor={theme.textLight}
+              value={title}
+              onChangeText={setTitle}
+            />
+
+            {/* Content Textarea */}
+            <TextInput
+              style={[styles.contentInput, { color: theme.text }]}
+              placeholder="Start writing your thoughts, memories, or daily reflections here..."
+              placeholderTextColor={theme.textLight}
+              value={content}
+              onChangeText={setContent}
+              multiline
+              textAlignVertical="top"
+            />
+
+            {/* Live Word & Character Counter */}
+            <View style={styles.editorFooterRow}>
+              <Text style={[styles.counterText, { color: theme.textMuted }]}>
+                {wordCount} {wordCount === 1 ? 'word' : 'words'} • {charCount} characters
+              </Text>
+            </View>
+
+            {/* Auto-calculated Total Badge */}
+            {total !== 0 && (
+              <View style={[styles.totalCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Text style={[styles.totalLabel, { color: theme.textMuted }]}>Auto-calculated Total:</Text>
+                <Text style={[styles.totalValue, { color: theme.primary }]}>
+                  {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Mobile Bottom Save Button */}
+          {!isDesktop && (
+            <View style={[styles.mobileFooter, { borderTopColor: theme.border }]}>
+              <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={['#1a73e8', '#2563eb']}
+                  style={styles.mobileSaveBtn}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Save Entry</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-
-        <TextInput
-          style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.border }]}
-          placeholder="Entry Title"
-          value={title}
-          onChangeText={setTitle}
-          placeholderTextColor={theme.textLight}
-        />
-
-        {/* <View style={[styles.switchContainer, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.switchLabel, { color: theme.text }]}>Add a photo?</Text>
-          <Switch
-            value={isHandwritten}
-            onValueChange={setIsHandwritten}
-            trackColor={{ false: theme.border, true: theme.primary }}
-            thumbColor={isHandwritten ? theme.background : "#f4f3f4"}
-          />
-        </View> */}
-
-
-
-        <TextInput
-          style={[styles.contentInput, { color: theme.text }]}
-          placeholder="Enter your notes"
-          placeholderTextColor={theme.textLight}
-          value={content}
-          onChangeText={setContent}
-          multiline
-          textAlignVertical="top"
-        />
       </ScrollView>
 
-      {total !== 0 && (
-        <View style={[styles.totalContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-          <Text style={[styles.totalLabel, { color: theme.textMuted }]}>Auto-calculated Total:</Text>
-          <Text style={[styles.totalValue, { color: theme.primary }]}>{total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Text>
-        </View>
-      )}
-
-      <View style={[styles.buttonContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-        <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.8}>
-          <LinearGradient
-            colors={['#208AEF', '#1560A6']}
-            style={styles.saveButton}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save Entry</Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-
-      <Modal visible={drawingModalVisible} animationType="slide" onRequestClose={() => setDrawingModalVisible(false)}>
+      {/* Drawing Canvas Modal */}
+      <Modal visible={drawingModalVisible} animationType="fade" onRequestClose={() => setDrawingModalVisible(false)}>
         <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.border, backgroundColor: theme.card }]}>
             <TouchableOpacity onPress={() => { setDrawingModalVisible(false); setIsErasing(false); }}>
-              <Text style={styles.modalCloseText}>Cancel</Text>
+              <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Draw Note</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Draw Note Canvas</Text>
             <TouchableOpacity onPress={() => { signatureRef.current?.readSignature(); }}>
-              <Text style={{ ...styles.modalCloseText, color: theme.primary }}>Save</Text>
+              <Text style={[styles.modalSaveText, { color: theme.primary }]}>Save Drawing</Text>
             </TouchableOpacity>
           </View>
-          <View style={[styles.drawingToolbar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+
+          <View style={[styles.drawingToolbar, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
             <TouchableOpacity onPress={() => signatureRef.current?.undo()} style={styles.toolbarButton}>
               <Ionicons name="arrow-undo-outline" size={20} color={theme.textMuted} />
               <Text style={[styles.toolbarText, { color: theme.textMuted }]}>Undo</Text>
             </TouchableOpacity>
+
             <TouchableOpacity onPress={() => signatureRef.current?.clearSignature()} style={styles.toolbarButton}>
               <Ionicons name="trash-outline" size={20} color={theme.danger} />
               <Text style={[styles.toolbarText, { color: theme.danger }]}>Clear</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => {
-              setIsErasing(false);
-              signatureRef.current?.draw();
-              signatureRef.current?.changePenSize(1, 3);
-            }} style={[styles.toolbarButton, !isErasing && { backgroundColor: theme.primaryLight }]}>
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsErasing(false);
+                signatureRef.current?.draw();
+                signatureRef.current?.changePenSize(2, 4);
+              }}
+              style={[styles.toolbarButton, !isErasing && { backgroundColor: theme.primaryLight }]}
+            >
               <Ionicons name="pencil-outline" size={20} color={!isErasing ? theme.primary : theme.textMuted} />
-              <Text style={[styles.toolbarText, !isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>Pen</Text>
+              <Text style={[styles.toolbarText, !isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>
+                Pen
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => {
-              setIsErasing(true);
-              signatureRef.current?.erase();
-              signatureRef.current?.changePenSize(15, 25);
-            }} style={[styles.toolbarButton, isErasing && { backgroundColor: theme.primaryLight }]}>
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsErasing(true);
+                signatureRef.current?.erase();
+                signatureRef.current?.changePenSize(15, 25);
+              }}
+              style={[styles.toolbarButton, isErasing && { backgroundColor: theme.primaryLight }]}
+            >
               <Ionicons name="backspace-outline" size={20} color={isErasing ? theme.primary : theme.textMuted} />
-              <Text style={[styles.toolbarText, isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>Erase</Text>
+              <Text style={[styles.toolbarText, isErasing ? { color: theme.primary, fontWeight: 'bold' } : { color: theme.textMuted }]}>
+                Erase
+              </Text>
             </TouchableOpacity>
           </View>
+
           <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
             <SignatureScreen
               ref={signatureRef}
@@ -242,198 +356,252 @@ export default function AddEntryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollContent: {
-    padding: 20,
     flexGrow: 1,
+    paddingVertical: Platform.OS === 'web' ? 24 : 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  titleInput: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 10,
-  },
-  contentInput: {
+  webCard: {
+    width: '100%',
     flex: 1,
-    minHeight: 300,
-    fontSize: 18,
-    color: '#555',
-    lineHeight: 28,
   },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 8,
-  },
-  switchLabel: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  buttonContainer: {
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  saveButton: {
-    padding: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#208AEF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#f8f9fa',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  totalLabel: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '600',
-  },
-  totalValue: {
-    fontSize: 18,
-    color: '#208AEF',
-    fontWeight: 'bold',
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 20,
-  },
-  addImageButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 8,
-    alignItems: 'center',
+  desktopCard: {
+    maxWidth: 920,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#bce0fd',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 6,
+    marginVertical: 12,
   },
-  addImageText: {
-    color: '#208AEF',
-    fontSize: 15,
+
+  /* ── Header ── */
+  editorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 28,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  cancelBtnText: {
+    fontSize: 14,
     fontWeight: '600',
   },
-  imageContainer: {
-    position: 'relative',
-    marginBottom: 20,
+  desktopSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
     borderRadius: 12,
+    shadowColor: '#1a73e8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  /* ── Form Body ── */
+  formBody: {
+    paddingHorizontal: 28,
+    paddingVertical: 24,
+  },
+  toolbarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  toolChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  switchChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  switchChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  /* ── Image Preview ── */
+  imagePreviewWrapper: {
+    position: 'relative',
+    marginBottom: 24,
+    borderRadius: 16,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   previewImage: {
     width: '100%',
-    height: 300,
+    height: 320,
     resizeMode: 'contain',
-    backgroundColor: '#f8f9fa',
   },
-  removeImageButton: {
+  removeImgBtn: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  /* ── Inputs ── */
+  titleInput: {
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 20,
+    borderBottomWidth: 1.5,
+    paddingBottom: 12,
+  },
+  contentInput: {
+    minHeight: 280,
+    fontSize: 17,
+    lineHeight: 28,
+  },
+  editorFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  counterText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  totalCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  totalLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  /* ── Mobile Footer ── */
+  mobileFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+  },
+  mobileSaveBtn: {
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
   },
-  removeImageText: {
+  saveBtnText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
-  moodTagsContainer: {
-    marginBottom: 15,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  moodScroll: {
-    flexDirection: 'row',
-  },
-  moodButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  moodEmoji: {
-    fontSize: 24,
-  },
+
+  /* ── Modal ── */
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '800',
   },
-  modalCloseText: {
-    fontSize: 16,
+  modalCancelText: {
+    fontSize: 15,
     color: '#e74c3c',
     fontWeight: '600',
+  },
+  modalSaveText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   drawingToolbar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 10,
-    backgroundColor: '#f8f9fa',
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   toolbarButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-  },
-  toolbarButtonActive: {
-    backgroundColor: '#e6f2ff',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 10,
   },
   toolbarText: {
     fontSize: 12,
     marginTop: 4,
-    color: '#555',
   },
 });
